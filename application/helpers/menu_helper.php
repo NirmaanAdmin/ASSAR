@@ -29,6 +29,13 @@ function app_init_admin_sidebar_menu_items()
         ]);
     }
 
+    $CI->app_menu->add_sidebar_menu_item('per_clients', [
+        'name'     => _l('ASSAR Dashboard'),
+        'href'     => admin_url('purchase/per_clients'),
+        'icon'     => 'fa-regular fa-user',
+        'position' => 8,
+        'badge'    => [],
+    ]);
 
     $CI->app_menu->add_sidebar_menu_item('assar', [
         'name'     => _l('ASSAR'),
@@ -37,9 +44,6 @@ function app_init_admin_sidebar_menu_items()
         'position' => 8,
         'badge'    => [],
     ]);
-
-
-
 
     $CI->app_menu->add_sidebar_menu_item('cost_planning', [
         'collapse' => true,

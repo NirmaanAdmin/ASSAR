@@ -17769,4 +17769,20 @@ class purchase extends AdminController
     {
         $this->app->get_table_data(module_views_path('purchase', 'assar/table_monthly_summary'));
     }
+
+    public function update_rollover_notes()
+    {
+        $this->db->where('id', $this->input->post('id'))
+            ->update('tblassar_monthly_summary', [
+                'notes' => $this->input->post('notes')
+            ]);
+    }
+
+    public function update_rollover()
+    {
+        $this->db->where('id', $this->input->post('id'))
+            ->update('tblassar_monthly_summary', [
+                'rolled_over' => $this->input->post('rolled_over')
+            ]);
+    }
 }

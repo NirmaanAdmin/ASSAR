@@ -883,6 +883,37 @@ $module_name = 'module_activity_log'; ?>
    $('#month_filter').on('change', function() {
       table_monthly_summary.DataTable().ajax.reload();
    });
+
+
+   $(document).on('blur', '.assar-notes-rollover', function() {
+
+      let id = $(this).data('id');
+      let notes = $(this).val();
+
+      $.post(admin_url + 'purchase/update_rollover_notes', {
+         id: id,
+         notes: notes
+      }).done(function() {
+         alert_float('success', 'Updated successfully');
+         table_monthly_summary.DataTable().ajax.reload();
+      });
+
+   });
+
+   $(document).on('change', '.rolled_over_select', function() {
+
+      let id = $(this).data('id');
+      let val = $(this).val();
+
+      $.post(admin_url + 'purchase/update_rollover', {
+         id: id,
+         rolled_over: val
+      }).done(function() {
+         alert_float('success', 'Updated successfully');
+         table_monthly_summary.DataTable().ajax.reload();
+      });
+
+   });
 </script>
 
 
