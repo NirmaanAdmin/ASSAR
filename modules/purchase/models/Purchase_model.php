@@ -28705,11 +28705,13 @@ class Purchase_model extends App_Model
         
         if ($exists) {
             // Update existing record
+            $data['updated_at'] = date('Y-m-d');
             $this->db->where('id', $exists->id);
             $this->db->update(db_prefix() . 'assar_monthly_investments', $data);
             return $exists->id;
         } else {
             // Insert new record
+            $data['created_at'] = date('Y-m-d');
             $this->db->insert(db_prefix() . 'assar_monthly_investments', $data);
             return $this->db->insert_id();
         }

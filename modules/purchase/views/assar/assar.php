@@ -540,6 +540,7 @@ $module_name = 'module_activity_log'; ?>
 
    // Add this at the top with other global variables
    var usedRanges = [];
+   var tabCounter = 1; // Counter for tab numbering
 
    // Function to format date
    function formatDate(d) {
@@ -566,6 +567,7 @@ $module_name = 'module_activity_log'; ?>
             $('#rangeTabs li:not(:last)').remove();
             $('#rangeTabContent .tab-pane:not(#plus)').remove();
             usedRanges = []; // Reset used ranges
+            tabCounter = 1; // Reset tab counter
 
             if (ranges.length === 0) {
                // Show plus tab as active
@@ -577,10 +579,11 @@ $module_name = 'module_activity_log'; ?>
             $.each(ranges, function(i, row) {
                usedRanges.push({
                   from: row.date_from,
-                  to: row.date_to
+                  to: row.date_to,
+                  tabNumber: tabCounter // Store tab number
                });
 
-               let rangeText = formatDate(row.date_from) + ' - ' + formatDate(row.date_to);
+               let rangeText = 'Sheet ' + tabCounter + ' - ' + formatDate(row.date_from) + ' to ' + formatDate(row.date_to);
                let tabId = 'tab_' + row.date_from + '_' + row.date_to;
 
                // Add tab
@@ -589,9 +592,10 @@ $module_name = 'module_activity_log'; ?>
                     <a href="#${tabId}"
                        data-from="${row.date_from}"
                        data-to="${row.date_to}"
+                       data-tab-number="${tabCounter}"
                        role="tab"
                        data-toggle="tab">
-                       ${rangeText}
+                       Sheet ${tabCounter}
                        <span class="close-tab"
                              data-from="${row.date_from}"
                              data-to="${row.date_to}">
@@ -608,6 +612,8 @@ $module_name = 'module_activity_log'; ?>
                      id="${tabId}">
                 </div>
                 `);
+
+               tabCounter++; // Increment counter for next tab
             });
 
             // Remove active class from all tabs and panes
@@ -643,6 +649,7 @@ $module_name = 'module_activity_log'; ?>
       let from = tabElement.data('from');
       let to = tabElement.data('to');
       let tabId = tabElement.attr('href').replace('#', '');
+      let tabNumber = tabElement.data('tab-number') || getTabNumberForRange(from, to);
 
       // If content already loaded, don't reload
       if ($('#' + tabId).html().trim() !== '') return;
@@ -657,12 +664,24 @@ $module_name = 'module_activity_log'; ?>
             month: $('#month_filter').val()
          },
          success: function(res) {
-            renderTable(tabId, res, from, to);
+            renderTable(tabId, res, from, to, tabNumber);
          },
          error: function() {
             alert_float('error', 'Failed to load tab data');
          }
       });
+   }
+
+   /**
+    * Get tab number for a given date range
+    */
+   function getTabNumberForRange(from, to) {
+      for (let i = 0; i < usedRanges.length; i++) {
+         if (usedRanges[i].from === from && usedRanges[i].to === to) {
+            return usedRanges[i].tabNumber;
+         }
+      }
+      return tabCounter;
    }
 
    /**
@@ -686,9 +705,11 @@ $module_name = 'module_activity_log'; ?>
     * @param {Array} res - Data rows
     * @param {string} from - Start date
     * @param {string} to - End date
+    * @param {number} tabNumber - Tab number (Sheet 1, Sheet 2, etc.)
     */
-   function renderTable(tabId, res, from, to) {
+   function renderTable(tabId, res, from, to, tabNumber) {
       let range = formatDate(from) + ' - ' + formatDate(to);
+      let sheetTitle = 'Sheet ' + tabNumber + ': ' + range;
 
       let totalInvestment = 0;
       let totalAssar = 0;
@@ -698,6 +719,7 @@ $module_name = 'module_activity_log'; ?>
       let totalCapital = 0;
 
       let html = `
+        <h4>${sheetTitle}</h4>
         <table class="table table-bordered">
         <thead>
         <tr>
@@ -775,7 +797,7 @@ $module_name = 'module_activity_log'; ?>
       $('#' + tabId).html(html);
    }
 
-   // Update the document ready function - replace only the tab_daily_return_log section:
+   // Update the document ready function
    $(document).ready(function() {
       // ... existing code for other tabs ...
 
@@ -810,24 +832,29 @@ $module_name = 'module_activity_log'; ?>
             return;
          }
 
-         // Add to usedRanges
+         // Get next tab number
+         let nextTabNumber = tabCounter;
+
+         // Add to usedRanges with tab number
          usedRanges.push({
             from: from,
-            to: to
+            to: to,
+            tabNumber: nextTabNumber
          });
 
-         let rangeText = formatDate(from) + ' - ' + formatDate(to);
+         let tabName = 'Sheet ' + nextTabNumber;
          let tabId = 'tab_' + from + '_' + to;
 
-         // Create tab
+         // Create tab with Sheet number
          $('#rangeTabs li:last').before(`
             <li role="presentation">
                 <a href="#${tabId}"
                    data-from="${from}"
                    data-to="${to}"
+                   data-tab-number="${nextTabNumber}"
                    role="tab"
                    data-toggle="tab">
-                   ${rangeText}
+                   ${tabName}
                    <span class="close-tab"
                          data-from="${from}"
                          data-to="${to}">
@@ -863,10 +890,13 @@ $module_name = 'module_activity_log'; ?>
                month: $('#month_filter').val()
             },
             success: function(res) {
-               renderTable(tabId, res, from, to);
+               renderTable(tabId, res, from, to, nextTabNumber);
                $('#dateRangeModal').modal('hide');
                $('#from_date').val('');
                $('#to_date').val('');
+
+               // Increment tab counter for next tab
+               tabCounter++;
             },
             error: function() {
                alert_float('error', 'Failed to load tab data');
@@ -918,6 +948,9 @@ $module_name = 'module_activity_log'; ?>
 
                alert_float('success', 'Deleted successfully');
 
+               // Re-number tabs after deletion
+               renumberTabs();
+
                // Activate another tab if available
                let nextTab = $('#rangeTabs li:not(:last) a').first();
                if (nextTab.length) {
@@ -934,6 +967,31 @@ $module_name = 'module_activity_log'; ?>
             alert_float('error', 'Failed to delete range');
          });
       });
+
+      /* ---------- RENUMBER TABS ---------- */
+      function renumberTabs() {
+         tabCounter = 1;
+         $('#rangeTabs li:not(:last)').each(function(index) {
+            let tabLink = $(this).find('a');
+            let from = tabLink.data('from');
+            let to = tabLink.data('to');
+
+            // Update tab number in DOM
+            tabLink.data('tab-number', tabCounter);
+            tabLink.html('Sheet ' + tabCounter +
+               '<span class="close-tab" data-from="' + from + '" data-to="' + to + '">&times;</span>');
+
+            // Update tab number in usedRanges
+            for (let i = 0; i < usedRanges.length; i++) {
+               if (usedRanges[i].from === from && usedRanges[i].to === to) {
+                  usedRanges[i].tabNumber = tabCounter;
+                  break;
+               }
+            }
+
+            tabCounter++;
+         });
+      }
 
       /* ---------- SAVE NOTES ---------- */
       $('body').on('blur', '.notes-new', function() {

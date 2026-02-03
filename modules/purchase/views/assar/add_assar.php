@@ -93,7 +93,7 @@
                     $monthly_investment = (isset($monthly_investment_value) && $monthly_investment_value != '')
                       ? $monthly_investment_value
                       : '';
-                    echo render_input('monthly_investment', 'Monthly Investment', $monthly_investment, 'number'); ?>
+                    echo render_input('monthly_investment', 'Monthly Investment', $monthly_investment, 'text'); ?>
                   </div>
 
                 </div>
@@ -188,7 +188,7 @@
                           <tr>
                             <td><?php echo date('F Y', strtotime($investment['month'] . '-01')); ?></td>
                             <td><?php echo app_format_money($investment['monthly_investment'], ''); ?></td>
-                            <td><?php echo _dt($investment['created_at']); ?></td>
+                            <td><?php echo date('d M, Y', strtotime($investment['created_at'])); ?></td>
                           </tr>
                         <?php endforeach; ?>
                       </tbody>

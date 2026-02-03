@@ -17444,7 +17444,7 @@ class purchase extends AdminController
                     }
 
                     set_alert('success', _l('added_successfully', _l('Client')));
-                    redirect(admin_url('purchase/assar'));
+                    redirect(admin_url('purchase/add_assar/' . $id));
                 }
             } else {
                 $success = $this->purchase_model->update_assar($assar_data, $id);
@@ -17464,7 +17464,7 @@ class purchase extends AdminController
 
                     set_alert('success', _l('updated_successfully', _l('Client')));
                 }
-                redirect(admin_url('purchase/assar/' . $id));
+                redirect(admin_url('purchase/add_assar/' . $id));
             }
         }
 
