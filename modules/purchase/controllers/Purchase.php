@@ -17426,20 +17426,48 @@ class purchase extends AdminController
     {
         if ($this->input->post()) {
             $assar_data = $this->input->post();
+
             if ($id == '') {
                 $id = $this->purchase_model->add_assar($assar_data);
                 if ($id) {
+                    // Save monthly investment if provided
+                    $month = $this->input->post('month');
+                    $monthly_investment = $this->input->post('monthly_investment');
+
+                    if ($month && $monthly_investment) {
+                        $monthly_data = array(
+                            'client_id' => $id,
+                            'month' => $month,
+                            'monthly_investment' => $monthly_investment
+                        );
+                        $this->purchase_model->save_monthly_investment($monthly_data);
+                    }
+
                     set_alert('success', _l('added_successfully', _l('Client')));
                     redirect(admin_url('purchase/assar'));
                 }
             } else {
                 $success = $this->purchase_model->update_assar($assar_data, $id);
                 if ($success) {
+                    // Update or add monthly investment
+                    $month = $this->input->post('month');
+                    $monthly_investment = $this->input->post('monthly_investment');
+
+                    if ($month && $monthly_investment) {
+                        $monthly_data = array(
+                            'client_id' => $id,
+                            'month' => $month,
+                            'monthly_investment' => $monthly_investment
+                        );
+                        $this->purchase_model->save_monthly_investment($monthly_data);
+                    }
+
                     set_alert('success', _l('updated_successfully', _l('Client')));
                 }
                 redirect(admin_url('purchase/assar/' . $id));
             }
         }
+
         if ($id == '') {
             $title = _l('Create New ASSAR');
             $is_edit = false;
@@ -17447,6 +17475,9 @@ class purchase extends AdminController
             $title = _l('Edit ASSAR');
             $is_edit = true;
             $data['assar'] = $this->purchase_model->get_assar($id);
+
+            // Get monthly investments for this client
+            $data['monthly_investments'] = $this->purchase_model->get_monthly_investments($id);
         }
 
         $data['title'] = $title;
@@ -17622,42 +17653,78 @@ class purchase extends AdminController
         echo json_encode(['success' => true]);
     }
 
+
     // public function get_clients_for_daily_return()
     // {
     //     $from = $this->input->post('from_date');
     //     $to   = $this->input->post('to_date');
 
-    //     // Get total return % for date range
+    //     // 1) Calculate total return %
     //     $total_return = $this->db
-    //         ->select('ROUND(IFNULL(SUM(return_per),0),2) as total_return')
+    //         ->select('IFNULL(SUM(return_per),0) as total')
     //         ->from('tbldaily_return_net')
     //         ->where('entry_date >=', $from)
     //         ->where('entry_date <=', $to)
     //         ->get()
     //         ->row()
-    //         ->total_return;
+    //         ->total;
 
-    //     // Get clients
+    //     // 2) Fetch clients
     //     $clients = $this->db
-    //         ->select('client_id,name,investment')
-    //         ->from('tblassar_clients')
-    //         ->get()
+    //         ->get('tblassar_clients')
     //         ->result_array();
 
-    //     // Attach same return % to every client
-    //     foreach ($clients as &$c) {
-    //         $c['client_pl_percent'] = $total_return;
+    //     $insertData = [];
+
+    //     foreach ($clients as $c) {
+
+    //         $pl = ($c['investment'] * $total_return) / 100;
+
+    //         $insertData[] = [
+    //             'date_from' => $from,
+    //             'date_to' => $to,
+    //             'client_id' => $c['client_id'],
+    //             'client_name' => $c['name'],
+    //             'investment' => $c['investment'],
+    //             'assar_holds' => $c['investment'],
+    //             'client_pl_percent' => $total_return,
+    //             'client_pl' => $pl,
+    //             'cumulative_month_pl' => $pl,
+    //             'accumulated_pl' => $pl,
+    //             'cumulative_capital' => $c['investment'] + $pl
+    //         ];
     //     }
 
-    //     echo json_encode($clients);
+    //     // 3) Delete if same range exists
+    //     $this->db->where('date_from', $from)
+    //         ->where('date_to', $to)
+    //         ->delete('tbl_daily_return_snapshot');
+
+    //     // 4) Save snapshot
+    //     $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
+
+    //     // 5) Fetch back from snapshot table
+    //     $result = $this->db
+    //         ->where('date_from', $from)
+    //         ->where('date_to', $to)
+    //         ->get('tbl_daily_return_snapshot')
+    //         ->result_array();
+
+    //     echo json_encode($result);
     // }
 
     public function get_clients_for_daily_return()
     {
-        $from = $this->input->post('from_date');
-        $to   = $this->input->post('to_date');
+        $from  = $this->input->post('from_date');
+        $to    = $this->input->post('to_date');
+        $month = $this->input->post('month'); // YYYY-MM
 
-        // 1) Calculate total return %
+        if (!$from || !$to || !$month) {
+            echo json_encode([]);
+            return;
+        }
+
+        // 1) Calculate total return % for selected range
         $total_return = $this->db
             ->select('IFNULL(SUM(return_per),0) as total')
             ->from('tbldaily_return_net')
@@ -17679,6 +17746,7 @@ class purchase extends AdminController
             $pl = ($c['investment'] * $total_return) / 100;
 
             $insertData[] = [
+                'month' => $month,
                 'date_from' => $from,
                 'date_to' => $to,
                 'client_id' => $c['client_id'],
@@ -17693,16 +17761,19 @@ class purchase extends AdminController
             ];
         }
 
-        // 3) Delete if same range exists
-        $this->db->where('date_from', $from)
+        // 3) Delete same range ONLY inside same month
+        $this->db
+            ->where('month', $month)
+            ->where('date_from', $from)
             ->where('date_to', $to)
             ->delete('tbl_daily_return_snapshot');
 
-        // 4) Save snapshot
+        // 4) Insert snapshot
         $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
 
-        // 5) Fetch back from snapshot table
+        // 5) Fetch snapshot rows for this range + month
         $result = $this->db
+            ->where('month', $month)
             ->where('date_from', $from)
             ->where('date_to', $to)
             ->get('tbl_daily_return_snapshot')
@@ -17710,11 +17781,16 @@ class purchase extends AdminController
 
         echo json_encode($result);
     }
+
+
     public function get_saved_daily_return_ranges()
     {
+        $month = $this->input->get('month');
+
         $rows = $this->db
             ->select('date_from, date_to')
             ->from(db_prefix() . '_daily_return_snapshot')
+            ->where('month', $month)
             ->group_by(['date_from', 'date_to'])
             ->order_by('date_from', 'ASC')
             ->get()
@@ -17722,18 +17798,17 @@ class purchase extends AdminController
 
         echo json_encode($rows);
     }
-
-
-
     public function get_snapshot_rows()
     {
         $from = $this->input->post('from_date');
         $to   = $this->input->post('to_date');
+        $month = $this->input->post('month'); // YYYY-MM
 
         echo json_encode(
             $this->db
                 ->where('date_from', $from)
                 ->where('date_to', $to)
+                ->where('month', $month)
                 ->get('tbl_daily_return_snapshot')
                 ->result_array()
         );

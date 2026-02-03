@@ -50,6 +50,55 @@
                 echo render_input('investment', 'Investment', $investment, 'number'); ?>
               </div>
 
+              <div class="col-md-6">
+                <div class="row">
+                  <!-- Month -->
+                  <div class="col-md-6">
+                    <label for="month">Month</label>
+                    <select name="month" id="month" class="form-control selectpicker">
+                      <option value="">Select Month</option>
+                      <?php
+                      $start    = new DateTime('2025-09-01');
+                      $end      = new DateTime('2028-09-01');
+                      $current  = date('Y-m'); // current month
+
+                      // If editing and we have monthly investments, get the latest month
+                      $selected_month = $current;
+                      $monthly_investment_value = '';
+
+                      if (isset($assar['id']) && !empty($monthly_investments)) {
+                        $latest_investment = $monthly_investments[0];
+                        $selected_month = $latest_investment['month'];
+                        $monthly_investment_value = $latest_investment['monthly_investment'];
+                      }
+
+                      while ($start <= $end) {
+                        $value = $start->format('Y-m');
+                        $label = $start->format('F Y');
+                        $selected = ($value === $selected_month) ? 'selected' : '';
+                      ?>
+                        <option value="<?php echo $value; ?>" <?php echo $selected; ?>>
+                          <?php echo $label; ?>
+                        </option>
+                      <?php
+                        $start->modify('+1 month');
+                      }
+                      ?>
+                    </select>
+                  </div>
+
+                  <!-- Monthly Investment -->
+                  <div class="col-md-6">
+                    <?php
+                    $monthly_investment = (isset($monthly_investment_value) && $monthly_investment_value != '')
+                      ? $monthly_investment_value
+                      : '';
+                    echo render_input('monthly_investment', 'Monthly Investment', $monthly_investment, 'number'); ?>
+                  </div>
+
+                </div>
+              </div>
+
               <!-- Status -->
               <div class="col-md-3">
                 <label>Status</label>
@@ -61,14 +110,14 @@
                   <option value="0" <?php echo ($status == 0) ? 'selected' : ''; ?>>Inactive</option>
                 </select>
               </div>
+
               <!-- commission -->
               <div class="col-md-3">
                 <label>Commission</label>
-
                 <div class="row">
                   <!-- Commission checkbox -->
                   <div class="col-md-4">
-                    <div  style="margin-top:6px;">
+                    <div style="margin-top:6px;">
                       <input type="hidden" name="commission" value="0">
                       <label>
                         <input type="checkbox" name="commission" value="1"
@@ -104,11 +153,8 @@
                 </div>
               </div>
 
-
-
-
               <!-- Referred By -->
-              <div class="col-md-6" style="clear: both;">
+              <div class="col-md-6" >
                 <?php
                 $referred_by = (isset($assar) && $assar['refferred_by'] != '') ? $assar['refferred_by'] : '';
                 echo render_input('refferred_by', 'Referred By', $referred_by); ?>
@@ -122,6 +168,35 @@
               </div>
 
             </div>
+
+            <!-- Show Monthly Investments History if editing -->
+            <?php if (isset($assar['id']) && !empty($monthly_investments)): ?>
+              <div class="row mtop20">
+                <div class="col-md-12">
+                  <h4>Monthly Investment Pattern</h4>
+                  <div class="table-responsive">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Month</th>
+                          <th>Investment</th>
+                          <th>Created At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php foreach ($monthly_investments as $investment): ?>
+                          <tr>
+                            <td><?php echo date('F Y', strtotime($investment['month'] . '-01')); ?></td>
+                            <td><?php echo app_format_money($investment['monthly_investment'], ''); ?></td>
+                            <td><?php echo _dt($investment['created_at']); ?></td>
+                          </tr>
+                        <?php endforeach; ?>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            <?php endif; ?>
 
             <!-- Submit Button -->
             <div class="text-right mtop20">

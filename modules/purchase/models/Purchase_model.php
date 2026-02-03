@@ -28688,6 +28688,41 @@ class Purchase_model extends App_Model
     }
 
 
+
+    public function get_assar($id){
+        $this->db->where('id', $id);
+        return $this->db->get(db_prefix() . 'assar_clients')->row_array();
+    }
+
+    // Add this method to your model for saving monthly investments
+    public function save_monthly_investment($data)
+    {
+        // Check if record exists for this client and month
+        $this->db->where('client_id', $data['client_id']);
+        $this->db->where('month', $data['month']);
+        $this->db->from(db_prefix() . 'assar_monthly_investments');
+        $exists = $this->db->get()->row();
+        
+        if ($exists) {
+            // Update existing record
+            $this->db->where('id', $exists->id);
+            $this->db->update(db_prefix() . 'assar_monthly_investments', $data);
+            return $exists->id;
+        } else {
+            // Insert new record
+            $this->db->insert(db_prefix() . 'assar_monthly_investments', $data);
+            return $this->db->insert_id();
+        }
+    }
+
+    // Add this method to get monthly investments
+    public function get_monthly_investments($client_id)
+    {
+        $this->db->where('client_id', $client_id);
+        $this->db->order_by('month', 'DESC');
+        return $this->db->get(db_prefix() . 'assar_monthly_investments')->result_array();
+    }
+
     public function add_assar($data)
     {
         // Timestamps
@@ -28708,17 +28743,15 @@ class Purchase_model extends App_Model
         }
 
         $data['commission'] = $commission;
+        
+        // Remove monthly fields from main client data (they go to separate table)
+        unset($data['month']);
+        unset($data['monthly_investment']);
 
         // Insert
         $this->db->insert(db_prefix() . 'assar_clients', $data);
 
         return $this->db->insert_id() ?: false;
-    }
-
-
-    public function get_assar($id){
-        $this->db->where('id', $id);
-        return $this->db->get(db_prefix() . 'assar_clients')->row_array();
     }
 
     public function update_assar($data, $id)
@@ -28742,6 +28775,10 @@ class Purchase_model extends App_Model
         }
 
         $data['commission'] = $commission;
+        
+        // Remove monthly fields from main client data
+        unset($data['month']);
+        unset($data['monthly_investment']);
 
         // Update
         $this->db->where('id', $id);
