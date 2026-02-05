@@ -17505,12 +17505,14 @@ class purchase extends AdminController
         $client = $this->input->post('client_id');
         $holds  = $this->input->post('assar_holds');
         $month  = $this->input->post('month');
-
+        $previousMonth = date('Y-m', strtotime($month . '-01 -1 month'));
+        if($holds == ''){
+            $holds = 0;
+        }
         // get investment
         $investment = $this->db
-            ->get_where('tblassar_monthly_investments', ['client_id' => $client])
-            ->row()->monthly_investment;
-
+            ->get_where('tblassar_net_rollver', ['client_id' => $client, 'month' => $previousMonth])
+            ->row()->net_rollver_amount;
         $earning = $holds * $investment / 100;
 
         // check record exists?
