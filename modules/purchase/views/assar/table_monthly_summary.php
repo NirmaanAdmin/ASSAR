@@ -140,6 +140,24 @@ foreach ($commission_settings as $receiver_client_id => $staff_pk_ids) {
 |--------------------------------------------------------------------------
 */
 $payout_date = date('Y-m-07', strtotime($summary_month . '-01'));
+$date = DateTime::createFromFormat('Y-m', $month);
+$date->modify('-1 month');
+$prev_month = $date->format('Y-m');
+
+$principal_amount = $this->ci->db
+    ->select('net_rollver_amount,client_id')
+    ->from('tblassar_net_rollver')
+    ->where('month', $prev_month)
+    ->get()
+    ->result_array();
+
+// Continue processing all records
+foreach ($principal_amount as $row) {
+    $principal_amount_map[$row['client_id']] = $row['net_rollver_amount'];
+}
+
+
+// Continue with the rest of your code...
 
 /*
 |--------------------------------------------------------------------------
@@ -185,11 +203,11 @@ foreach ($clients as $c) {
         $tds = 0;
         $net_payout = 0;
         $payout_date_db = NULL;
-        $net_rollover = $c['investment'] + $gross_payout;
+        $net_rollover = $principal_amount_map[$c['id']] + $gross_payout;
     } else {
 
         $payout_date_db = $payout_date;
-        $net_rollover = $c['investment'];
+        $net_rollover = $principal_amount_map[$c['id']] ?? 0;
     }
 
     // ----------------------------------
@@ -199,7 +217,7 @@ foreach ($clients as $c) {
         'client_pk_id'      => $c['id'],
         'client_id'         => $cid,
         'month'             => $summary_month,
-        'investment'        => $c['investment'],
+        'investment'        => $principal_amount_map[$c['id']] ?? 0,
         'principal'         => $c['investment'],
         'total_days'        => $total_days,
         'total_pl'          => $pl,
