@@ -241,15 +241,15 @@ foreach ($clients as $c) {
         'net_rollver_amount' => $net_rollover
     ];
 
-    // if ($rollver_exists) {
-    //     // Update existing record
-    //     $this->ci->db
-    //         ->where('id', $rollver_exists->id)
-    //         ->update('tblassar_net_rollver', $rollver_data);
-    // } else {
-    //     // Insert new record
-    //     $this->ci->db->insert('tblassar_net_rollver', $rollver_data);
-    // }
+    if ($rollver_exists) {
+        // Update existing record
+        $this->ci->db
+            ->where('id', $rollver_exists->id)
+            ->update('tblassar_net_rollver', $rollver_data);
+    } else {
+        // Insert new record
+        $this->ci->db->insert('tblassar_net_rollver', $rollver_data);
+    }
 }
 
 
