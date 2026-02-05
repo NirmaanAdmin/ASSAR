@@ -2,11 +2,15 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 $month = $this->ci->input->post('month');
+// Get previous month for rollover lookup
+$date = DateTime::createFromFormat('Y-m', $month);
+$date->modify('-1 month');
+$prev_month = $date->format('Y-m');
 
 $aColumns = [
     'tblassar_clients.client_id',
     'tblassar_clients.name',
-    'tblassar_clients.investment',
+    'nrr.net_rollver_amount as net_rollver_amount',
     'm.assar_holds',
     'm.client_earnings'
 ];
@@ -17,7 +21,10 @@ $sTable = db_prefix() . 'assar_clients';
 $join = [
     'LEFT JOIN tbl_assar_main_sheet m
      ON m.client_id = tblassar_clients.id
-     AND m.month_year = "' . $month . '"'
+     AND m.month_year = "' . $month . '"',
+    'LEFT JOIN tblassar_net_rollver nrr
+     ON nrr.client_id = tblassar_clients.id
+     AND nrr.month = "' . $prev_month . '"'
 ];
 
 $where = [];
@@ -65,9 +72,9 @@ foreach ($rResult as $aRow) {
         } elseif ($col == 'name') {
 
             $_data = $aRow['name'];
-        } elseif ($col == 'investment') {
+        } elseif ($col == 'net_rollver_amount') {
 
-            $_data = app_format_money($aRow['investment'], '₹');
+            $_data = app_format_money($aRow['net_rollver_amount'] ?? 0, '₹');
         } elseif ($col == 'm.assar_holds') {
 
             $_data = '<input type="number"
@@ -85,7 +92,7 @@ foreach ($rResult as $aRow) {
 
         $row[] = $_data;
     }
-    $footer_data['investment'] += $aRow['tblassar_clients.investment'];
+    $footer_data['investment'] += $aRow['net_rollver_amount'];
     $footer_data['client_earnings_forecast'] += $aRow['client_earnings'];
     $output['aaData'][] = $row;
 }

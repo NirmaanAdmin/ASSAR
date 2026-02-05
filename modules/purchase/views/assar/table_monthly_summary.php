@@ -45,7 +45,6 @@ $pl_results = $this->ci->db
 foreach ($pl_results as $row) {
     $client_pl_map[$row['client_id']] = $row['total_pl'];
 }
-
 /*
 |--------------------------------------------------------------------------
 | ID => CLIENT MAP
@@ -207,7 +206,7 @@ foreach ($clients as $c) {
         'net_payout'        => $net_payout,
         'net_rollover'      => $net_rollover,
         'payout_date'       => $payout_date_db,
-        
+
     ];
 
     // ----------------------------------
@@ -225,6 +224,32 @@ foreach ($clients as $c) {
             $save
         );
     }
+
+    // ----------------------------------
+    // INSERT OR UPDATE - tblassar_net_rollver
+    // ----------------------------------
+    // Check if record exists in tblassar_net_rollver
+    $rollver_exists = $this->ci->db
+        ->where('client_id', $c['id'])  // Assuming 'id' is the primary client ID
+        ->where('month', $summary_month)
+        ->get('tblassar_net_rollver')
+        ->row();
+
+    $rollver_data = [
+        'client_id' => $c['id'],  // Using the primary client ID
+        'month' => $summary_month,
+        'net_rollver_amount' => $net_rollover
+    ];
+
+    // if ($rollver_exists) {
+    //     // Update existing record
+    //     $this->ci->db
+    //         ->where('id', $rollver_exists->id)
+    //         ->update('tblassar_net_rollver', $rollver_data);
+    // } else {
+    //     // Insert new record
+    //     $this->ci->db->insert('tblassar_net_rollver', $rollver_data);
+    // }
 }
 
 
@@ -302,8 +327,8 @@ foreach ($rResult as $aRow) {
     $row[] = app_format_money($aRow['tblassar_monthly_summary.tds'], '₹');
     $row[] = app_format_money($aRow['tblassar_monthly_summary.net_payout'], '₹');
     $row[] = !empty($aRow['tblassar_monthly_summary.payout_date'])
-    ? date('d M Y', strtotime($aRow['tblassar_monthly_summary.payout_date']))
-    : '';
+        ? date('d M Y', strtotime($aRow['tblassar_monthly_summary.payout_date']))
+        : '';
 
     $row[] = '
     <textarea class="form-control assar-notes-rollover"
