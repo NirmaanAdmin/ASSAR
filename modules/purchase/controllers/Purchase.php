@@ -17734,6 +17734,8 @@ class purchase extends AdminController
         $to    = $this->input->post('to_date');
         $month = $this->input->post('month'); // YYYY-MM
         $previousMonth = date('Y-m', strtotime($month . '-01 -1 month'));
+        $date = DateTime::createFromFormat('Y-m', $month);
+        $lastDayOfMonth = $date->format('Y-m-t'); // 't' gives last day of month
 
         if (!$from || !$to || !$month) {
             echo json_encode([]);
@@ -17760,6 +17762,7 @@ class purchase extends AdminController
             ->join('tblassar_net_rollver nr', 'nr.client_id = c.id AND nr.month = "' . $previousMonth . '"', 'left')
             // Left join for monthly_investments (current month)
             ->join('tblassar_monthly_investments mi', 'mi.client_id = c.id AND mi.month = "' . $month . '"', 'left')
+            ->where('c.start_date <=', $lastDayOfMonth)
             ->get()
             ->result_array();
 

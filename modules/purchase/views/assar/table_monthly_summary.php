@@ -2,7 +2,8 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 $month = $this->ci->input->post('month');
-
+$date = DateTime::createFromFormat('Y-m', $month);
+$lastDayOfMonth = $date->format('Y-m-t'); // 't' gives last day of month
 /*
 |--------------------------------------------------------------------------
 | MONTH + TOTAL DAYS
@@ -147,6 +148,7 @@ $payout_date = date('Y-m-07', strtotime($summary_month . '-01'));
 $clients = $this->ci->db
     ->select('id, client_id, investment')
     ->from(db_prefix() . 'assar_clients')
+    ->where('start_date <=', $lastDayOfMonth)
     ->get()->result_array();
 
 foreach ($clients as $c) {
