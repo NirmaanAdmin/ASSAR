@@ -2,7 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 $month = $this->ci->input->post('month');
-
+// Get last date of the month for WHERE condition
+$date = DateTime::createFromFormat('Y-m', $month);
+$lastDayOfMonth = $date->format('Y-m-t'); // 't' gives last day of month
+// Get previous month for rollover lookup
+$date = DateTime::createFromFormat('Y-m', $month);
+$date->modify('-1 month');
+$prev_month = $date->format('Y-m');
 // --------------------------------------------------
 // Build Date Range (8th -> 6th next month)
 // --------------------------------------------------
@@ -23,12 +29,15 @@ $pl_data = $this->ci->db
 
 
 $investment_data = $this->ci->db
-    ->select('SUM(investment) as total_investment')
-    ->get('tblassar_clients')
-    ->row();
+    ->select('SUM(net_rollver_amount) as total_investment')
+    ->from('tblassar_net_rollver')
+    ->where('month', $prev_month)
+    ->get()
+    ->result_array();
 
 $get_client_count = $this->ci->db
     ->select('COUNT(*) as cnt')
+    ->where('start_date <=', $lastDayOfMonth)
     ->get('tblassar_clients')
     ->row();
 
@@ -36,8 +45,8 @@ $get_client_count = $this->ci->db
 if ($pl_data && $get_client_count->cnt > 0) {
     $avg_daily_pl = $pl_data->total / $get_client_count->cnt;
 }
-if ($investment_data && $investment_data->total_investment > 0) {
-    $avg_return_per = ($avg_daily_pl / $investment_data->total_investment) * 100;
+if ($investment_data && $investment_data[0]['total_investment'] > 0) {
+    $avg_return_per = ($avg_daily_pl / $investment_data[0]['total_investment']) * 100;
 }
 
 // --------------------------------------------------
