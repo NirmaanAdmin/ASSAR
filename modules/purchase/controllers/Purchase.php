@@ -17508,8 +17508,8 @@ class purchase extends AdminController
 
         // get investment
         $investment = $this->db
-            ->get_where('tblassar_clients', ['id' => $client])
-            ->row()->investment;
+            ->get_where('tblassar_monthly_investments', ['client_id' => $client])
+            ->row()->monthly_investment;
 
         $earning = $holds * $investment / 100;
 
