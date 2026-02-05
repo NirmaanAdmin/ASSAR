@@ -28,6 +28,11 @@ $join = [
 ];
 
 $where = [];
+// Get last date of the month for WHERE condition
+$date = DateTime::createFromFormat('Y-m', $month);
+$lastDayOfMonth = $date->format('Y-m-t'); // 't' gives last day of month
+
+array_push($where, ' AND tblassar_clients.start_date <= "' . $lastDayOfMonth . '"');
 $having = '';
 
 $result = data_tables_init(
