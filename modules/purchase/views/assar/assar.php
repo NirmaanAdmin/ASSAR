@@ -531,7 +531,8 @@ $module_name = 'module_activity_log'; ?>
       $.post(admin_url + 'purchase/update_daily_return_field', {
          id: row_id,
          field: field,
-         value: value
+         value: value,
+         month: $('#month_filter').val()
       }).done(function() {
          alert_float('success', 'Updated successfully');
          $('.table-table_daily_return_net').DataTable().ajax.reload();

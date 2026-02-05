@@ -17587,7 +17587,7 @@ class purchase extends AdminController
         // --------------------------------------------------
         // TOTAL INVESTMENT
         // --------------------------------------------------
-        
+
         $investment_data = $this->db
             ->select('SUM(net_rollver_amount) as total_investment')
             ->from('tblassar_net_rollver')
@@ -17617,7 +17617,7 @@ class purchase extends AdminController
         $id    = $this->input->post('id');
         $field = $this->input->post('field');
         $value = $this->input->post('value');
-
+        $month = $this->input->post('month');
         if (!in_array($field, ['actual_pl', 'notes'])) {
             die('Invalid field');
         }
@@ -17641,17 +17641,22 @@ class purchase extends AdminController
         // If ACTUAL PL updated
         // ---------------------------
         $actual_pl = (float)$value;
-
+        // Get previous month for rollover lookup
+        $date = DateTime::createFromFormat('Y-m', $month);
+        $date->modify('-1 month');
+        $prev_month = $date->format('Y-m');
         // Get total investment
         $investment_data = $this->db
-            ->select('SUM(investment) as total_investment')
-            ->get('tblassar_clients')
-            ->row();
+            ->select('SUM(net_rollver_amount) as total_investment')
+            ->from('tblassar_net_rollver')
+            ->where('month', $prev_month)
+            ->get()
+            ->result_array();
 
         $return_per = 0;
 
-        if ($investment_data && $investment_data->total_investment > 0) {
-            $return_per = ($actual_pl / $investment_data->total_investment) * 100;
+        if ($investment_data && $investment_data[0]['total_investment'] > 0) {
+            $return_per = ($actual_pl / $investment_data[0]['total_investment']) * 100;
         }
 
         // Update both columns
