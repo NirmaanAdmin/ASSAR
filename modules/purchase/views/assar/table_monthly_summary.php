@@ -33,7 +33,7 @@ $client_pl_map = [];
 
 
 $month_start = date('Y-m-08', strtotime($month . '-01'));
-$month_end   = date('Y-m-06', strtotime($start . ' +1 month'));
+$month_end   = date('Y-m-06', strtotime($month_start . ' +1 month'));
 // echo $month_start . ' - ' . $month_end; exit;
 $pl_results = $this->ci->db
     ->select('client_id, SUM(client_pl) as total_pl')
@@ -46,7 +46,8 @@ $pl_results = $this->ci->db
 
 foreach ($pl_results as $row) {
     $client_pl_map[$row['client_id']] = $row['total_pl'];
-}
+}   
+
 /*
 |--------------------------------------------------------------------------
 | ID => CLIENT MAP
