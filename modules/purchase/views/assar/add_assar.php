@@ -247,6 +247,34 @@
               </div>
             <?php endif; ?>
 
+            <?php if (isset($assar['id']) && !empty($monthly_increase)): ?>
+              <div class="row mtop20">
+                <div class="col-md-12">
+                  <h4>Monthly Amount Increase/Decrease Pattern</h4>
+                  <div class="table-responsive">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Month</th>
+                          <th>Amount</th>
+                          <th>Created At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php foreach ($monthly_increase as $amount): ?>
+                          <tr>
+                            <td><?php echo date('F Y', strtotime($amount['month'] . '-01')); ?></td>
+                            <td><?php echo app_format_money($amount['increase_desc_amount'], ''); ?></td>
+                            <td><?php echo date('d M, Y', strtotime($amount['created_at'])); ?></td>
+                          </tr>
+                        <?php endforeach; ?>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            <?php endif; ?>
+
             <!-- Submit Button -->
             <div class="text-right mtop20">
               <button type="submit" class="btn btn-info">
