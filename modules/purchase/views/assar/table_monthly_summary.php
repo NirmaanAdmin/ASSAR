@@ -335,6 +335,17 @@ $rResult = $result['rResult'];
 | OUTPUT ROWS
 |--------------------------------------------------------------------------
 */
+$footer_data = [
+    'investment' => 0,
+    'principal' => 0,
+    'totalpl' => 0,
+    'commission' => 0,
+    'payoutgross' => 0,
+    'tds' => 0,
+    'payoutnet' => 0,
+    'netrollover' => 0
+];
+
 foreach ($rResult as $aRow) {
 
     $row = [];
@@ -368,6 +379,17 @@ foreach ($rResult as $aRow) {
         rows="3">' . $aRow['tblassar_monthly_summary.notes'] . '</textarea>';
 
     $row[] = app_format_money($aRow['tblassar_monthly_summary.net_rollover'], '₹');
-
+     $footer_data['investment'] += $aRow['tblassar_monthly_summary.investment'];
+     $footer_data['principal'] += $aRow['tblassar_monthly_summary.principal'];
+     $footer_data['totalpl'] += $aRow['tblassar_monthly_summary.total_pl'];
+     $footer_data['commission'] += $aRow['tblassar_monthly_summary.commission_amount'];
+     $footer_data['payoutgross'] += $aRow['tblassar_monthly_summary.gross_payout'];
+     $footer_data['tds'] += $aRow['tblassar_monthly_summary.tds'];
+     $footer_data['payoutnet'] += $aRow['tblassar_monthly_summary.net_payout'];
+     $footer_data['netrollover'] += $aRow['tblassar_monthly_summary.net_rollover'];
     $output['aaData'][] = $row;
 }
+foreach ($footer_data as $key => $total) {
+    $footer_data[$key] = app_format_money($total, '₹');
+}
+$output['sums'] = $footer_data;

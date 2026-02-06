@@ -1,7 +1,10 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-
+$module_name = 'assar';
 $month = $this->ci->input->post('month');
+
+$month_filter_name = 'month';
+
 // Get previous month for rollover lookup
 $date = DateTime::createFromFormat('Y-m', $month);
 $date->modify('-1 month');
@@ -25,17 +28,21 @@ $join = [
     'LEFT JOIN tblassar_net_rollver nrr
      ON nrr.client_id = tblassar_clients.id
      AND nrr.month = "' . $prev_month . '"',
-     'LEFT JOIN tblassar_monthly_increase mi
+    'LEFT JOIN tblassar_monthly_increase mi
      ON mi.client_id = tblassar_clients.id
      AND mi.month = "' . $month . '"'
 ];
-
+$month_filter_name_value = !empty($this->ci->input->post('month')) ? $this->ci->input->post('month') : NULL;
+update_module_filter($module_name, $month_filter_name, $month_filter_name_value);
 $where = [];
 // Get last date of the month for WHERE condition
 $date = DateTime::createFromFormat('Y-m', $month);
 $lastDayOfMonth = $date->format('Y-m-t'); // 't' gives last day of month
 
 array_push($where, ' AND tblassar_clients.start_date <= "' . $lastDayOfMonth . '"');
+
+
+
 $having = '';
 
 $result = data_tables_init(
@@ -44,7 +51,7 @@ $result = data_tables_init(
     $sTable,
     $join,
     $where,
-    ['tblassar_clients.id','mi.increase_desc_amount as increase_desc_amount'],
+    ['tblassar_clients.id', 'mi.increase_desc_amount as increase_desc_amount'],
     '',
     [],
     $having

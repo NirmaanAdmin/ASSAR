@@ -44,6 +44,7 @@ $module_name = 'module_activity_log'; ?>
       color: darkred;
    }
 </style>
+<?php $module_name = 'assar'; ?>
 <div id="wrapper">
    <div class="content">
       <div class="row">
@@ -64,19 +65,27 @@ $module_name = 'module_activity_log'; ?>
                         </div>
                         <div class="_buttons col-md-9">
                            <div class="_buttons col-md-3 pull-right">
+                              <?php
+                              $month_filter = get_module_filter($module_name, 'month');
+                              $month_filter_val = !empty($month_filter) ? $month_filter->filter_value : '';
+                              ?>
+
                               <div class="form-group">
                                  <select name="month_filter" id="month_filter" class="form-control">
                                     <option value="">Select Month</option>
 
                                     <?php
-                                    $start    = new DateTime('2025-09-01');
-                                    $end      = new DateTime('2028-09-01');
-                                    $current  = date('Y-m'); // current month
+                                    $start   = new DateTime('2025-09-01');
+                                    $end     = new DateTime('2028-09-01');
+                                    $current = date('Y-m');
+
+                                    // priority: saved filter → current month
+                                    $selected_month = !empty($month_filter_val) ? $month_filter_val : $current;
 
                                     while ($start <= $end) {
                                        $value = $start->format('Y-m');
                                        $label = $start->format('F Y');
-                                       $selected = ($value === $current) ? 'selected' : '';
+                                       $selected = ($value === $selected_month) ? 'selected' : '';
                                     ?>
                                        <option value="<?php echo $value; ?>" <?php echo $selected; ?>>
                                           <?php echo $label; ?>
@@ -86,8 +95,8 @@ $module_name = 'module_activity_log'; ?>
                                     }
                                     ?>
                                  </select>
-
                               </div>
+
 
                            </div>
                         </div>
@@ -339,7 +348,20 @@ $module_name = 'module_activity_log'; ?>
                                  </thead>
                                  <tbody></tbody>
                                  <tfoot>
-
+                                    <td></td>
+                                    <td></td>
+                                    <td class="investment"></td>
+                                    <td class="principal"></td>
+                                    <td></td>
+                                    <td class="totalpl"></td>
+                                    <td></td>
+                                    <td class="commission"></td>
+                                    <td class="payoutgross"></td>
+                                    <td class="tds"></td>
+                                    <td class="payoutnet"></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td class="netrollover"></td>
                                  </tfoot>
                               </table>
                            </div>
@@ -1011,6 +1033,7 @@ $module_name = 'module_activity_log'; ?>
 
       // ... rest of your existing code for other tabs ...
    });
+   
 
    var table_monthly_summary = $('.table-table_monthly_summary');
    var Params_monthly_summary = {
@@ -1019,6 +1042,20 @@ $module_name = 'module_activity_log'; ?>
    initDataTable(table_monthly_summary, admin_url + 'purchase/table_monthly_summary', [], [], Params_monthly_summary, [0, 'asc']);
    $('#month_filter').on('change', function() {
       table_monthly_summary.DataTable().ajax.reload();
+   });
+   ('.table-table_monthly_summary').on('draw.dt', function() {
+      var reportsTable1 = $(this).DataTable();
+      var sums = reportsTable1.ajax.json().sums;
+      $(this).find('tfoot').addClass('bold');
+      $(this).find('tfoot td').eq(0).html("Total (Per Page)");
+      $(this).find('tfoot td.investment').html(sums.investment);
+      $(this).find('tfoot td.principal').html(sums.principal);
+      $(this).find('tfoot td.totalpl').html(sums.totalpl);
+      $(this).find('tfoot td.commission').html(sums.commission);
+      $(this).find('tfoot td.payoutgross').html(sums.payoutgross);
+      $(this).find('tfoot td.tds').html(sums.tds);
+      $(this).find('tfoot td.payoutnet').html(sums.payoutnet);
+      $(this).find('tfoot td.netrollover').html(sums.netrollover);
    });
 
 
