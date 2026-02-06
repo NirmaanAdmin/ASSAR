@@ -438,7 +438,7 @@ $module_name = 'per_client'; ?>
       form.append($('<input>', {
          type: 'hidden',
          name: "csrf_token_name",
-         value: $('input[name="csrf_token_name"]').val()
+         value: '733f6da668474ebbb369de4077db364c'
       }));
       form.append($('<input>', {
          type: 'hidden',
@@ -490,7 +490,7 @@ $module_name = 'per_client'; ?>
       form.append($('<input>', {
          type: 'hidden',
          name: "csrf_token_name",
-         value: $('input[name="csrf_token_name"]').val()
+         value: '733f6da668474ebbb369de4077db364c'
       }));
 
       form.append($('<input>', {

@@ -1043,7 +1043,7 @@ $module_name = 'module_activity_log'; ?>
    $('#month_filter').on('change', function() {
       table_monthly_summary.DataTable().ajax.reload();
    });
-   ('.table-table_monthly_summary').on('draw.dt', function() {
+   (table_monthly_summary).on('draw.dt', function() {
       var reportsTable1 = $(this).DataTable();
       var sums = reportsTable1.ajax.json().sums;
       $(this).find('tfoot').addClass('bold');
