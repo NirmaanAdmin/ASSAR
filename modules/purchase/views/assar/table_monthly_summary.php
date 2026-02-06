@@ -145,16 +145,27 @@ $date->modify('-1 month');
 $prev_month = $date->format('Y-m');
 
 $principal_amount = $this->ci->db
-    ->select('net_rollver_amount,client_id')
-    ->from('tblassar_net_rollver')
-    ->where('month', $prev_month)
+    ->select('
+        n.client_id,
+        IFNULL(n.net_rollver_amount,0) 
+        + IFNULL(i.increase_desc_amount,0) AS final_amount
+    ')
+    ->from('tblassar_net_rollver n')
+    ->join(
+        'tblassar_monthly_increase i',
+        'i.client_id = n.client_id AND i.month = "' . $month . '"',
+        'left'
+    )
+    ->where('n.month', $prev_month)
     ->get()
     ->result_array();
 
-// Continue processing all records
+
+// Build map
 foreach ($principal_amount as $row) {
-    $principal_amount_map[$row['client_id']] = $row['net_rollver_amount'];
+    $principal_amount_map[$row['client_id']] = (float)$row['final_amount'];
 }
+
 
 
 // Continue with the rest of your code...

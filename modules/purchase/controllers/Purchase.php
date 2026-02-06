@@ -17282,7 +17282,8 @@ class purchase extends AdminController
     public function per_client_pdf()
     {
         $output_type = $this->input->post('output_type') ?: $this->input->get('output_type');
-        $html = $this->purchase_model->get_per_client_pdf_html($data);
+        $html = $this->purchase_model->get_per_client_pdf_html();
+
         try {
             $pdf = $this->purchase_model->perclients_pdf($html);
             $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
@@ -17426,13 +17427,13 @@ class purchase extends AdminController
     {
         if ($this->input->post()) {
             $assar_data = $this->input->post();
-
             if ($id == '') {
                 $id = $this->purchase_model->add_assar($assar_data);
                 if ($id) {
                     // Save monthly investment if provided
                     $month = $this->input->post('month');
                     $monthly_investment = $this->input->post('monthly_investment');
+
 
                     if ($month && $monthly_investment) {
                         $monthly_data = array(
@@ -17442,6 +17443,22 @@ class purchase extends AdminController
                         );
                         $this->purchase_model->save_monthly_investment($monthly_data);
                     }
+
+
+
+                    $month_increase = $this->input->post('month_increase');
+                    $increase_desc_amount = $this->input->post('increase_desc_amount');
+
+
+                    if ($month_increase && $increase_desc_amount) {
+                        $monthly_data = array(
+                            'client_id' => $id,
+                            'month' => $month_increase,
+                            'increase_desc_amount' => $increase_desc_amount
+                        );
+                        $this->purchase_model->save_monthly_increase($monthly_data);
+                    }
+
 
                     set_alert('success', _l('added_successfully', _l('Client')));
                     redirect(admin_url('purchase/add_assar/' . $id));
@@ -17462,6 +17479,19 @@ class purchase extends AdminController
                         $this->purchase_model->save_monthly_investment($monthly_data);
                     }
 
+                    $month_increase = $this->input->post('month_increase');
+                    $increase_desc_amount = $this->input->post('increase_desc_amount');
+
+
+                    if ($month_increase && $increase_desc_amount) {
+                        $monthly_data = array(
+                            'client_id' => $id,
+                            'month' => $month_increase,
+                            'increase_desc_amount' => $increase_desc_amount
+                        );
+                        $this->purchase_model->save_monthly_increase($monthly_data);
+                    }
+
                     set_alert('success', _l('updated_successfully', _l('Client')));
                 }
                 redirect(admin_url('purchase/add_assar/' . $id));
@@ -17478,6 +17508,7 @@ class purchase extends AdminController
 
             // Get monthly investments for this client
             $data['monthly_investments'] = $this->purchase_model->get_monthly_investments($id);
+            $data['monthly_increase'] = $this->purchase_model->get_monthly_increase($id);
         }
 
         $data['title'] = $title;
@@ -17510,10 +17541,39 @@ class purchase extends AdminController
             $holds = 0;
         }
         // get investment
-        $investment = $this->db
-            ->get_where('tblassar_net_rollver', ['client_id' => $client, 'month' => $previousMonth])
-            ->row()->net_rollver_amount;
+        // Get base investment from net rollover table
+        $net_row = $this->db
+            ->get_where('tblassar_net_rollver', [
+                'client_id' => $client,
+                'month' => $previousMonth
+            ])
+            ->row();
+
+        $investment = ($net_row && isset($net_row->net_rollver_amount))
+            ? (float)$net_row->net_rollver_amount
+            : 0;
+
+
+        // Get increase / decrease amount
+        $inc_row = $this->db
+            ->get_where('tblassar_monthly_increase', [
+                'client_id' => $client,
+                'month' => $month
+            ])
+            ->row();
+
+        $inc_des_amount = ($inc_row && isset($inc_row->increase_desc_amount))
+            ? (float)$inc_row->increase_desc_amount
+            : 0;
+
+
+        // Final Investment = base + inc/dec
+        $investment = $investment + $inc_des_amount;
+
+
+        // Calculate earning
         $earning = $holds * $investment / 100;
+
 
         // check record exists?
         $exists = $this->db
@@ -17595,8 +17655,15 @@ class purchase extends AdminController
             ->get()
             ->result_array();
 
+        $get_monthly_increase_amount = $this->db
+            ->select('SUM(increase_desc_amount) as total_increase_desc')
+            ->from('tblassar_monthly_increase')
+            ->where('month', $month)
+            ->get()
+            ->row();
+
         if ($investment_data && $investment_data[0]['total_investment'] > 0) {
-            $avg_return_per = ($avg_daily_pl / $investment_data[0]['total_investment']) * 100;
+            $avg_return_per = ($avg_daily_pl / ($investment_data[0]['total_investment'] + $get_monthly_increase_amount->total_increase_desc)) * 100;
         }
         // --------------------------------------------------
         // UPDATE BOTH COLUMNS
@@ -17655,8 +17722,15 @@ class purchase extends AdminController
 
         $return_per = 0;
 
+         $get_monthly_increase_amount = $this->db
+            ->select('SUM(increase_desc_amount) as total_increase_desc')
+            ->from('tblassar_monthly_increase')
+            ->where('month', $month)
+            ->get()
+            ->row();
+
         if ($investment_data && $investment_data[0]['total_investment'] > 0) {
-            $return_per = ($actual_pl / $investment_data[0]['total_investment']) * 100;
+            $return_per = ($actual_pl / ($investment_data[0]['total_investment'] + $get_monthly_increase_amount->total_increase_desc)) * 100;
         }
 
         // Update both columns
@@ -17669,79 +17743,6 @@ class purchase extends AdminController
 
         echo json_encode(['success' => true]);
     }
-
-    // public function get_clients_for_daily_return()
-    // {
-    //     $from  = $this->input->post('from_date');
-    //     $to    = $this->input->post('to_date');
-    //     $month = $this->input->post('month'); // YYYY-MM
-    //     $previousMonth = date('Y-m', strtotime($month . '-01 -1 month'));
-    //     if (!$from || !$to || !$month) {
-    //         echo json_encode([]);
-    //         return;
-    //     }
-
-    //     // 1) Calculate total return % for selected range
-    //     $total_return = $this->db
-    //         ->select('IFNULL(SUM(return_per),0) as total')
-    //         ->from('tbldaily_return_net')
-    //         ->where('entry_date >=', $from)
-    //         ->where('entry_date <=', $to)
-    //         ->get()
-    //         ->row()
-    //         ->total;
-
-    //     // 2) Fetch clients
-    //     $clients = $this->db
-    //         ->select('tblassar_clients.*, tblassar_net_rollver.net_rollver_amount')
-    //         ->from('tblassar_clients')
-    //         ->join('tblassar_net_rollver', 'tblassar_net_rollver.client_id = tblassar_clients.id')
-    //         ->where('tblassar_net_rollver.month', $previousMonth) // Get last month's values
-    //         ->get()
-    //         ->result_array();
-
-    //     $insertData = [];
-
-    //     foreach ($clients as $c) {
-    //         $assar_holds_amount = isset($c['net_rollver_amount']) ? $c['net_rollver_amount'] : $c['investment'];
-    //         $investment_amount = $c['investment'];
-    //         $pl = ($assar_holds_amount * $total_return) / 100;
-
-    //         $insertData[] = [
-    //             'month' => $month,
-    //             'date_from' => $from,
-    //             'date_to' => $to,
-    //             'client_id' => $c['id'], // Changed from client_id to id
-    //             'client_name' => $c['name'],
-    //             'investment' => $investment_amount,
-    //             'assar_holds' => $assar_holds_amount,
-    //             'client_pl_percent' => $total_return,
-    //             'client_pl' => $pl,
-    //             'cumulative_month_pl' => $pl,
-    //             'accumulated_pl' => $pl,
-    //             'cumulative_capital' => $investment_amount + $pl
-    //         ];
-    //     }
-    //     // 3) Delete same range ONLY inside same month
-    //     $this->db
-    //         ->where('month', $month)
-    //         ->where('date_from', $from)
-    //         ->where('date_to', $to)
-    //         ->delete('tbl_daily_return_snapshot');
-
-    //     // 4) Insert snapshot
-    //     $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
-
-    //     // 5) Fetch snapshot rows for this range + month
-    //     $result = $this->db
-    //         ->where('month', $month)
-    //         ->where('date_from', $from)
-    //         ->where('date_to', $to)
-    //         ->get('tbl_daily_return_snapshot')
-    //         ->result_array();
-
-    //     echo json_encode($result);
-    // }
 
     public function get_clients_for_daily_return()
     {
@@ -17771,12 +17772,14 @@ class purchase extends AdminController
         $clients = $this->db
             ->select('c.*, 
         nr.net_rollver_amount, 
-        mi.monthly_investment')
+        mi.monthly_investment,
+        m_inc.increase_desc_amount')
             ->from('tblassar_clients c')
             // Left join for net_rollver (previous month)
             ->join('tblassar_net_rollver nr', 'nr.client_id = c.id AND nr.month = "' . $previousMonth . '"', 'left')
             // Left join for monthly_investments (current month)
             ->join('tblassar_monthly_investments mi', 'mi.client_id = c.id AND mi.month = "' . $month . '"', 'left')
+            ->join('tblassar_monthly_increase m_inc', 'm_inc.client_id = c.id AND m_inc.month = "' . $month . '"', 'left') // Join for monthly increase/decrease
             ->where('c.start_date <=', $lastDayOfMonth)
             ->get()
             ->result_array();
@@ -17823,7 +17826,7 @@ class purchase extends AdminController
         foreach ($clients as $c) {
             // Get assar_holds_amount from net_rollver (previous month)
             $assar_holds_amount = isset($c['net_rollver_amount']) && $c['net_rollver_amount'] > 0
-                ? $c['net_rollver_amount']
+                ? $c['net_rollver_amount'] + (isset($c['increase_desc_amount']) ? $c['increase_desc_amount'] : 0)
                 : $c['investment'];
 
             // Get investment_amount from monthly_investments (current month)

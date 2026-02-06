@@ -154,7 +154,7 @@
               </div>
 
               <!-- Referred By -->
-              <div class="col-md-6" >
+              <div class="col-md-6">
                 <?php
                 $referred_by = (isset($assar) && $assar['refferred_by'] != '') ? $assar['refferred_by'] : '';
                 echo render_input('refferred_by', 'Referred By', $referred_by); ?>
@@ -165,6 +165,55 @@
                 <?php
                 $remarks = (isset($assar) && $assar['remarks'] != '') ? $assar['remarks'] : '';
                 echo render_input('remarks', 'Remarks', $remarks); ?>
+              </div>
+
+              <div class="col-md-6">
+                <div class="row">
+                  <!-- Month -->
+                  <div class="col-md-6">
+                    <label for="month">Select Month To Increase or Decrease</label>
+                    <select name="month_increase" id="month" class="form-control selectpicker">
+                      <option value="">Select Month</option>
+                      <?php
+                      $start    = new DateTime('2025-09-01');
+                      $end      = new DateTime('2028-09-01');
+                      $current  = date('Y-m'); // current month
+
+                      // If editing and we have monthly investments, get the latest month
+                      $selected_month = $current;
+                      $monthly_increase_desc_amount = '';
+
+                      if (isset($assar['id']) && !empty($monthly_increase)) {
+                        $latest_investment = $monthly_increase[0];
+                        $selected_month = $latest_investment['month'];
+                        $monthly_increase_desc_amount = $latest_investment['increase_desc_amount'];
+                      }
+
+                      while ($start <= $end) {
+                        $value = $start->format('Y-m');
+                        $label = $start->format('F Y');
+                        $selected = ($value === $selected_month) ? 'selected' : '';
+                      ?>
+                        <option value="<?php echo $value; ?>" <?php echo $selected; ?>>
+                          <?php echo $label; ?>
+                        </option>
+                      <?php
+                        $start->modify('+1 month');
+                      }
+                      ?>
+                    </select>
+                  </div>
+
+                  <!-- Monthly Investment -->
+                  <div class="col-md-6">
+                    <?php
+                    $monthly_increase_amount = (isset($monthly_increase_desc_amount) && $monthly_increase_desc_amount != '')
+                      ? $monthly_increase_desc_amount
+                      : '';
+                    echo render_input('increase_desc_amount', 'Increase Descrease Amount', $monthly_increase_amount, 'text'); ?>
+                  </div>
+
+                </div>
               </div>
 
             </div>

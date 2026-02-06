@@ -28717,12 +28717,41 @@ class Purchase_model extends App_Model
         }
     }
 
+    public function save_monthly_increase($data)
+    {
+        // Check if record exists for this client and month
+        $this->db->where('client_id', $data['client_id']);
+        $this->db->where('month', $data['month']);
+        $this->db->from(db_prefix() . 'assar_monthly_increase');
+        $exists = $this->db->get()->row();
+        
+        if ($exists) {
+            // Update existing record
+            $data['updated_at'] = date('Y-m-d');
+            $this->db->where('id', $exists->id);
+            $this->db->update(db_prefix() . 'assar_monthly_increase', $data);
+            return $exists->id;
+        } else {
+            // Insert new record
+            $data['created_at'] = date('Y-m-d');
+            $this->db->insert(db_prefix() . 'assar_monthly_increase', $data);
+            return $this->db->insert_id();
+        }
+    }
+
     // Add this method to get monthly investments
     public function get_monthly_investments($client_id)
     {
         $this->db->where('client_id', $client_id);
         $this->db->order_by('month', 'DESC');
         return $this->db->get(db_prefix() . 'assar_monthly_investments')->result_array();
+    }
+
+    public function get_monthly_increase($client_id)
+    {
+        $this->db->where('client_id', $client_id);
+        $this->db->order_by('month', 'DESC');
+        return $this->db->get(db_prefix() . 'assar_monthly_increase')->result_array();
     }
 
     public function add_assar($data)
@@ -28749,6 +28778,8 @@ class Purchase_model extends App_Model
         // Remove monthly fields from main client data (they go to separate table)
         unset($data['month']);
         unset($data['monthly_investment']);
+        unset($data['month_increase']);
+        unset($data['increase_desc_amount']);
 
         // Insert
         $this->db->insert(db_prefix() . 'assar_clients', $data);
@@ -28781,6 +28812,8 @@ class Purchase_model extends App_Model
         // Remove monthly fields from main client data
         unset($data['month']);
         unset($data['monthly_investment']);
+        unset($data['month_increase']);
+        unset($data['increase_desc_amount']);
 
         // Update
         $this->db->where('id', $id);

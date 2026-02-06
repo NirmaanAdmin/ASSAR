@@ -24,7 +24,10 @@ $join = [
      AND m.month_year = "' . $month . '"',
     'LEFT JOIN tblassar_net_rollver nrr
      ON nrr.client_id = tblassar_clients.id
-     AND nrr.month = "' . $prev_month . '"'
+     AND nrr.month = "' . $prev_month . '"',
+     'LEFT JOIN tblassar_monthly_increase mi
+     ON mi.client_id = tblassar_clients.id
+     AND mi.month = "' . $month . '"'
 ];
 
 $where = [];
@@ -41,7 +44,7 @@ $result = data_tables_init(
     $sTable,
     $join,
     $where,
-    ['tblassar_clients.id'],
+    ['tblassar_clients.id','mi.increase_desc_amount as increase_desc_amount'],
     '',
     [],
     $having
@@ -78,8 +81,8 @@ foreach ($rResult as $aRow) {
 
             $_data = $aRow['name'];
         } elseif ($col == 'net_rollver_amount') {
-
-            $_data = app_format_money($aRow['net_rollver_amount'] ?? 0, '₹');
+            $final_rollver_amount = $aRow['net_rollver_amount'] + ($aRow['increase_desc_amount'] ?? 0);
+            $_data = app_format_money($final_rollver_amount, '₹');
         } elseif ($col == 'm.assar_holds') {
 
             $_data = '<input type="number"
