@@ -190,9 +190,7 @@ foreach ($clients as $c) {
     $paid     = $commission_paid[$cid] ?? 0;
     $final_commission = $received - $paid;
 
-    $gross_payout = $pl + $final_commission;
-    $tds = $gross_payout * 0.10;
-    $net_payout = $gross_payout - $tds;
+    
 
     // ----------------------------------
     // CHECK EXISTING ROLLED OVER VALUE
@@ -209,16 +207,20 @@ foreach ($clients as $c) {
     // APPLY ROLLOVER RULE
     // ----------------------------------
     if ($rolled_over == 1) {
-
+        $gross_payout = $pl + $final_commission;
         $tds = 0;
         $net_payout = 0;
         $payout_date_db = NULL;
         $net_rollover = $principal_amount_map[$c['id']] + $gross_payout;
     } else {
-
+        $gross_payout = $pl + $final_commission + ($principal_amount_map[$c['id']] ?? 0) - $c['investment'];
         $payout_date_db = $payout_date;
         $net_rollover = $principal_amount_map[$c['id']] ?? 0;
     }
+
+    
+    $tds = $gross_payout * 0.10;
+    $net_payout = $gross_payout - $tds;
 
     // ----------------------------------
     // SAVE ARRAY
@@ -237,7 +239,6 @@ foreach ($clients as $c) {
         'net_payout'        => $net_payout,
         'net_rollover'      => $net_rollover,
         'payout_date'       => $payout_date_db,
-
     ];
 
     // ----------------------------------
