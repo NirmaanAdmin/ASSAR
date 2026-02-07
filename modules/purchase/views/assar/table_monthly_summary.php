@@ -45,7 +45,7 @@ $pl_results = $this->ci->db
 
 foreach ($pl_results as $row) {
     $client_pl_map[$row['client_id']] = $row['total_pl'];
-}   
+}
 /*
 |--------------------------------------------------------------------------
 | ID => CLIENT MAP
@@ -166,7 +166,20 @@ foreach ($principal_amount as $row) {
 }
 
 
+$increase_amount = $this->ci->db
+    ->select('
+        client_id,
+        IFNULL(increase_desc_amount, 0) AS final_amount
+    ')
+    ->from('tblassar_monthly_increase')
+    ->where('month', $month)
+    ->get()
+    ->result_array();
 
+// Build map
+foreach ($increase_amount as $row) {
+    $increase_amount_map[$row['client_id']] = (float)$row['final_amount'];
+}
 // Continue with the rest of your code...
 
 /*
@@ -189,8 +202,8 @@ foreach ($clients as $c) {
     $received = $commission_received[$cid] ?? 0;
     $paid     = $commission_paid[$cid] ?? 0;
     $final_commission = $received - $paid;
+    $final_investment = $c['investment'] + $increase_amount_map[$c['id']] ?? 0;
 
-    
 
     // ----------------------------------
     // CHECK EXISTING ROLLED OVER VALUE
@@ -213,14 +226,15 @@ foreach ($clients as $c) {
         $payout_date_db = NULL;
         $net_rollover = $principal_amount_map[$c['id']] + $gross_payout;
     } else {
-        $gross_payout = $pl + $final_commission + ($principal_amount_map[$c['id']] ?? 0) - $c['investment'];
+        $gross_payout = $pl + $final_commission + ($principal_amount_map[$c['id']] ?? 0) - $final_investment;
+        $tds = $gross_payout * 0.10;
+        $net_payout = $gross_payout - $tds;
         $payout_date_db = $payout_date;
-        $net_rollover = $principal_amount_map[$c['id']] ?? 0;
+        $net_rollover = $final_investment;
     }
 
-    
-    $tds = $gross_payout * 0.10;
-    $net_payout = $gross_payout - $tds;
+
+
 
     // ----------------------------------
     // SAVE ARRAY
@@ -230,7 +244,7 @@ foreach ($clients as $c) {
         'client_id'         => $cid,
         'month'             => $summary_month,
         'investment'        => $principal_amount_map[$c['id']] ?? 0,
-        'principal'         => $c['investment'],
+        'principal'         => $final_investment,
         'total_days'        => $total_days,
         'total_pl'          => $pl,
         'commission_amount' => $final_commission,
@@ -379,14 +393,14 @@ foreach ($rResult as $aRow) {
         rows="3">' . $aRow['tblassar_monthly_summary.notes'] . '</textarea>';
 
     $row[] = app_format_money($aRow['tblassar_monthly_summary.net_rollover'], '₹');
-     $footer_data['investment'] += $aRow['tblassar_monthly_summary.investment'];
-     $footer_data['principal'] += $aRow['tblassar_monthly_summary.principal'];
-     $footer_data['totalpl'] += $aRow['tblassar_monthly_summary.total_pl'];
-     $footer_data['commission'] += $aRow['tblassar_monthly_summary.commission_amount'];
-     $footer_data['payoutgross'] += $aRow['tblassar_monthly_summary.gross_payout'];
-     $footer_data['tds'] += $aRow['tblassar_monthly_summary.tds'];
-     $footer_data['payoutnet'] += $aRow['tblassar_monthly_summary.net_payout'];
-     $footer_data['netrollover'] += $aRow['tblassar_monthly_summary.net_rollover'];
+    $footer_data['investment'] += $aRow['tblassar_monthly_summary.investment'];
+    $footer_data['principal'] += $aRow['tblassar_monthly_summary.principal'];
+    $footer_data['totalpl'] += $aRow['tblassar_monthly_summary.total_pl'];
+    $footer_data['commission'] += $aRow['tblassar_monthly_summary.commission_amount'];
+    $footer_data['payoutgross'] += $aRow['tblassar_monthly_summary.gross_payout'];
+    $footer_data['tds'] += $aRow['tblassar_monthly_summary.tds'];
+    $footer_data['payoutnet'] += $aRow['tblassar_monthly_summary.net_payout'];
+    $footer_data['netrollover'] += $aRow['tblassar_monthly_summary.net_rollover'];
     $output['aaData'][] = $row;
 }
 foreach ($footer_data as $key => $total) {
