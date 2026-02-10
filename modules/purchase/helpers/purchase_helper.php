@@ -7199,9 +7199,20 @@ function get_month_table_footers($months = [])
     }
 
     $html .= '
-        <td></td>
+        <td class="earned_to_date"></td>
         <td></td>
     </tr>';
 
     return $html;
+}
+function get_increase_amount($client_id)
+{
+    $CI = &get_instance();
+
+    $CI->db->select('COALESCE(SUM(increase_desc_amount), 0) AS total_amount');
+    $CI->db->from('tblassar_monthly_increase');
+    $CI->db->where('client_id', $client_id);
+
+    $query = $CI->db->get();
+    return $query->row()->total_amount;
 }

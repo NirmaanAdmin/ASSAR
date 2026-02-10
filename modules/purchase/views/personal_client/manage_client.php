@@ -281,7 +281,6 @@ $module_name = 'per_client'; ?>
          // Replace header and footer
          $('#table-month-headers').html(response.headers);
          $('#table-month-footers').html(response.footers);
-         console.log('asdasd');
          // Reinitialize with Perfex helper
          initDataTable(
             table_manage_client,
@@ -291,13 +290,46 @@ $module_name = 'per_client'; ?>
             tableParams,
             []
          );
-         console.log('pk');
+
+         $(table_manage_client).on('draw.dt', function() {
+
+            var table = $(this).DataTable();
+            var json = table.ajax.json();
+
+            if (!json || !json.sums) {
+               return;
+            }
+
+            var sums = json.sums;
+            var tfoot = $(this).find('tfoot');
+
+            tfoot.addClass('bold');
+
+            // First column label
+            tfoot.find('td').eq(0).html('Total (Per Page)');
+
+            // Loop through footer cells
+            tfoot.find('td').each(function() {
+
+               var cell = $(this);
+
+               // Match footer cell class with sums key
+               $.each(sums, function(key, value) {
+                  if (cell.hasClass(key)) {
+                     cell.html(value);
+                  }
+               });
+
+            });
+
+         });
+
       });
    }
 
    $(document).on('change', 'select[name="months[]"]', function() {
       reloadMonthTableStructure(); // rebuild columns
-      get_pre_client_dashboard();    // refresh charts
+      get_pre_client_dashboard(); // refresh charts
    });
 
    $(document).on('change', 'select[name="frequency"], select[name="per_client[]"]', function() {

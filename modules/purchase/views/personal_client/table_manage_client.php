@@ -55,7 +55,7 @@ $aColumns = [
     db_prefix() . 'assar_clients.name',
     db_prefix() . 'assar_clients.phone',
     db_prefix() . 'assar_clients.start_date',
-    db_prefix() . 'assar_clients.investment',
+    db_prefix() . 'assar_clients.investment as investment',
     db_prefix() . 'assar_clients.frequency',
 ];
 
@@ -75,7 +75,7 @@ $aColumns[] = "CASE
 $sIndexColumn = 'id';
 $sTable = db_prefix() . 'assar_clients';
 $join = [
-    'LEFT JOIN ' . db_prefix() . 'assar_monthly_summary ams ON ams.client_pk_id = ' . db_prefix() . 'assar_clients.id'
+    'LEFT JOIN ' . db_prefix() . 'assar_monthly_summary ams ON ams.client_pk_id = ' . db_prefix() . 'assar_clients.id',
 ];
 
 $where = [];
@@ -177,9 +177,17 @@ foreach ($rResult as $aRow) {
         } elseif ($column_alias == 'start_date') {
             $row[] = date('d M, Y', strtotime($_data));
         } elseif ($column_alias == 'investment') {
-            $formatted = app_format_money($_data, '₹');
+
+            $base_investment   = (float) $_data; // existing investment
+            $increase_amount   = (float) get_increase_amount($aRow['id']); 
+            // final value = investment + increase/decrease
+            $total_investment = $base_investment + $increase_amount;
+
+            $formatted = app_format_money($total_investment, '₹');
             $row[] = $formatted;
-            $footer_data['investment'] += $_data;
+
+            // footer total
+            $footer_data['investment'] += $total_investment;
         } elseif ($column_alias == 'frequency') {
             $row[] = $_data;
         } elseif (array_key_exists($column_alias, $months_to_display)) {
