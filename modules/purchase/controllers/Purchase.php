@@ -17339,6 +17339,7 @@ class purchase extends AdminController
         // If no specific clients selected -> export all clients
         if (empty($client_ids)) {
             $client_ids = $this->purchase_model->get_all_client_ids($frequency); // create this function
+            // $client_ids = ["0" => "1"];
         }
 
         if (empty($client_ids)) {
@@ -17366,7 +17367,6 @@ class purchase extends AdminController
             $data['per_client'] = [$client_id]; // for single client
 
             $html = $this->purchase_model->get_per_single_client_pdf_html($data, $client_id);
-
             try {
                 $pdf = $this->purchase_model->perclients_pdf($html);
                 $pdf->SetAutoPageBreak(true, PDF_MARGIN_BOTTOM);
@@ -17722,7 +17722,7 @@ class purchase extends AdminController
 
         $return_per = 0;
 
-         $get_monthly_increase_amount = $this->db
+        $get_monthly_increase_amount = $this->db
             ->select('SUM(increase_desc_amount) as total_increase_desc')
             ->from('tblassar_monthly_increase')
             ->where('month', $month)
@@ -17963,5 +17963,15 @@ class purchase extends AdminController
             ->update('tblassar_monthly_summary', [
                 'rolled_over' => $this->input->post('rolled_over')
             ]);
+    }
+
+    public function get_month_table_structure()
+    {
+        $months = $this->input->post('months');
+
+        $data['headers'] = get_month_table_headers($months);
+        $data['footers'] = get_month_table_footers($months);
+
+        echo json_encode($data);
     }
 }

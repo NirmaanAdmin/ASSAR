@@ -148,17 +148,55 @@ $module_name = 'per_client'; ?>
                      </div>
                      <div class="row all_filters mtop20">
 
-                        <div class="col-md-2 form-group">
-                           <?php
-                           $months_filter = get_module_filter($module_name, 'months');
-                           $month_filter_val = !empty($months_filter) ? $months_filter->filter_value : '';
-                           ?>
-                           <select class="selectpicker" name="months" data-width="100%" data-none-selected-text="<?php echo _l('Year'); ?>">
-                              <option value=""></option>
-                              <option value="2025" <?php echo ($month_filter_val == '2025') ? 'selected' : ''; ?>>2025</option>
-                           </select>
-                        </div>
 
+                        <div class="col-md-3">
+                           <?php
+                           $month_filter = get_module_filter($module_name, 'months');
+                           $month_filter_val = !empty($month_filter) ? explode(',', $month_filter->filter_value) : [];
+
+                           // Default: current month plus previous 4 months (5 months total)
+                           $current = date('Y-m');
+                           $default_months = [];
+                           $current_date = new DateTime($current . '-01');
+
+                           for ($i = 4; $i >= 0; $i--) {
+                              $month_date = clone $current_date;
+                              $month_date->modify("-$i months");
+                              $default_months[] = $month_date->format('Y-m');
+                           }
+
+                           // Use saved filter or default months
+                           $selected_months = !empty($month_filter_val) ? $month_filter_val : $default_months;
+                           ?>
+
+                           <div class="form-group">
+                              <select name="months[]" id="months" class="form-control selectpicker"
+                                 data-width="100%"
+                                 data-none-selected-text="<?php echo _l('Select Months'); ?>"
+                                 data-max-options="5"
+                                 multiple
+                                 data-actions-box="true"
+                                 data-selected-text-format="count > 3">
+                                 <?php
+                                 $start = new DateTime('2025-08-01');
+                                 $end = new DateTime('2028-08-01');
+
+                                 while ($start <= $end) {
+                                    $value = $start->format('Y-m');
+                                    $label = $start->format('F Y');
+                                    $selected = in_array($value, $selected_months) ? 'selected' : '';
+                                 ?>
+                                    <option value="<?php echo $value; ?>" <?php echo $selected; ?>>
+                                       <?php echo $label; ?>
+                                    </option>
+                                 <?php
+                                    $start->modify('+1 month');
+                                 }
+                                 ?>
+                              </select>
+                              <small class="text-muted">Select up to 5 months to display</small>
+                           </div>
+                        </div>
                         <div class="col-md-2 form-group">
                            <?php
                            $frequency_filter = get_module_filter($module_name, 'frequency');
@@ -186,42 +224,13 @@ $module_name = 'per_client'; ?>
                         </div>
                      </div>
 
-                     <table class="dt-table-loading table table-table_manage_client">
-                        <thead>
-                           <tr>
-                              <th><?php echo _l('Client Id'); ?></th>
-                              <th><?php echo _l('Name'); ?></th>
-                              <th><?php echo _l('Phone'); ?></th>
-                              <th><?php echo _l('Start Date'); ?></th>
-                              <th><?php echo _l('Investment'); ?></th>
-                              <th><?php echo _l('Frequency'); ?></th>
-                              <th><?php echo _l('August 2025'); ?></th>
-                              <th><?php echo _l('September 2025'); ?></th>
-                              <th><?php echo _l('October 2025'); ?></th>
-                              <th><?php echo _l('November 2025'); ?></th>
-                              <th><?php echo _l('December 2025'); ?></th>
-                              <th><?php echo _l('Earned To Date'); ?></th>
-                              <th><?php echo _l('Percent Profits'); ?></th>
-                           </tr>
+                     <table class="dt-table-loading table table-table_manage_client" id="dynamic-month-table">
+                        <thead id="table-month-headers">
                         </thead>
                         <tbody></tbody>
-                        <tfoot>
-                           <td></td>
-                           <td></td>
-                           <td></td>
-                           <td></td>
-                           <td class="investment"></td>
-                           <td></td>
-                           <td class="aug"></td>
-                           <td class="sep"></td>
-                           <td class="oct"></td>
-                           <td class="nov"></td>
-                           <td class="dec"></td>
-                           <td></td>
-                           <td></td>
+                        <tfoot id="table-month-footers">
                         </tfoot>
                      </table>
-
                   </div>
                </div>
             </div>
@@ -232,191 +241,242 @@ $module_name = 'per_client'; ?>
 
 <?php init_tail(); ?>
 <script>
+   var table_manage_client;
+   var tableParams = {
+      "months": "[name='months[]']",
+      "frequency": "[name='frequency']",
+      "per_client": "[name='per_client[]']",
+   };
+
    $(document).ready(function() {
-      var table_manage_client = $('.table-table_manage_client');
-      var Params = {
-         "months": "[name='months']",
-         "frequency": "[name='frequency']",
-         "per_client": "[name='per_client[]']",
-      };
-      initDataTable(table_manage_client, admin_url + 'purchase/table_manage_client', [], [], Params, []);
-      $.each(Params, function(i, obj) {
-         $('select' + obj).on('change', function() {
-            table_manage_client.DataTable().ajax.reload();
-         });
-      });
-      $(document).on('click', '.reset_all_filters', function() {
-         var filterArea = $('.all_filters');
-         filterArea.find('input').val("");
-         filterArea.find('select').selectpicker("val", "");
-         table_manage_client.DataTable().ajax.reload();
-         get_pre_client_dashboard();
-      });
 
-      get_pre_client_dashboard();
+      // table_manage_client = $('.table-table_manage_client');
 
-      $(document).on('change', 'select[name="months"], select[name="frequency"], select[name="per_client[]"]', function() {
-         get_pre_client_dashboard();
-      });
+      // initDataTable(
+      //    table_manage_client,
+      //    admin_url + 'purchase/table_manage_client',
+      //    [],
+      //    [],
+      //    tableParams,
+      //    []
+      // );
+      reloadMonthTableStructure();
+   });
 
-      var lineChartOverTime;
+   function reloadMonthTableStructure() {
+      $.post(admin_url + 'purchase/get_month_table_structure', {
+         months: $('select[name="months[]"]').val(),
+         frequency: $('select[name="frequency"]').val(),
+         per_client: $('select[name="per_client[]"]').val()
+      }).done(function(response) {
 
-      function get_pre_client_dashboard() {
-         "use strict";
+         response = JSON.parse(response);
 
-         var data = {
-            months: $('select[name="months"]').val(),
-            frequency: $('select[name="frequency"]').val(),
-            per_client: $('select[name="per_client[]"]').val(),
+         // Destroy old table
+         if ($.fn.DataTable.isDataTable('#dynamic-month-table')) {
+            $('#dynamic-month-table').DataTable().clear().destroy();
+            $('#dynamic-month-table tbody').empty();
          }
 
-         $.post(admin_url + 'purchase/get_per_clients_charts', data).done(function(response) {
-            response = JSON.parse(response);
+         // Replace header and footer
+         $('#table-month-headers').html(response.headers);
+         $('#table-month-footers').html(response.footers);
+         console.log('asdasd');
+         // Reinitialize with Perfex helper
+         initDataTable(
+            table_manage_client,
+            admin_url + 'purchase/table_manage_client',
+            [],
+            [],
+            tableParams,
+            []
+         );
+         console.log('pk');
+      });
+   }
 
-
-            $('.total_clients').text(response.total_clients);
-            $('.total_investment').text('₹' + response.total_investment);
-            $('.total_earnings').text('₹' + response.total_earnings);
-            $('.last_month_average_profit').text('₹' + response.last_month_average_profit);
-
-            var staffBarCtx = document.getElementById('barChartTopStaffs').getContext('2d');
-            var staffLabels = response.bar_top_client_name;
-            var staffData = response.bar_top_client_value;
-
-            if (window.barTopStaffsChart) {
-               barTopStaffsChart.data.labels = staffLabels;
-               barTopStaffsChart.data.datasets[0].data = staffData;
-               setTimeout(function() {
-                  var base64 = barTopStaffsChart.toBase64Image();
-                  $('#bar_chart_img').val(base64);
-               }, 300);
-               barTopStaffsChart.update();
-            } else {
-               window.barTopStaffsChart = new Chart(staffBarCtx, {
-                  type: 'bar',
-                  data: {
-                     labels: staffLabels,
-                     datasets: [{
-                        label: 'Total Count',
-                        data: staffData,
-                        backgroundColor: '#1E90FF',
-                        borderColor: '#1E90FF',
-                        borderWidth: 1
-                     }]
-                  },
-                  options: {
-                     indexAxis: 'y',
-                     responsive: true,
-                     maintainAspectRatio: false,
-                     animation: {
-                        onComplete: function() {
-                           var base64 = barTopStaffsChart.toBase64Image();
-                           $('#bar_chart_img').val(base64);
-                        }
-                     },
-                     plugins: {
-                        legend: {
-                           display: false
-                        }
-                     },
-                     scales: {
-                        x: {
-                           beginAtZero: true,
-                           ticks: {
-                              color: '#000'
-                           },
-                           title: {
-                              display: true,
-                              text: '% Profit'
-                           }
-                        },
-                        y: {
-                           ticks: {
-                              autoSkip: false,
-                              color: '#000'
-                           },
-                           title: {
-                              display: true,
-                              text: 'Client'
-                           }
-                        }
-                     }
-                  }
-               });
-            }
-
-            // Activity Type Breakdown
-            var lineCtx = document.getElementById('lineChartOverTime').getContext('2d');
-
-            if (lineChartOverTime) {
-               lineChartOverTime.data.labels = response.line_order_date;
-               lineChartOverTime.data.datasets[0].data = response.line_order_total;
-               setTimeout(function() {
-                  var base64 = lineChartOverTime.toBase64Image();
-                  $('#line_chart_img').val(base64);
-               }, 300);
-               lineChartOverTime.update();
-            } else {
-               lineChartOverTime = new Chart(lineCtx, {
-                  type: 'line',
-                  data: {
-                     labels: response.line_order_date,
-                     datasets: [{
-                        label: 'Total Count',
-                        data: response.line_order_total,
-                        fill: false,
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        tension: 0.3
-                     }]
-                  },
-                  options: {
-                     responsive: true,
-                     maintainAspectRatio: false,
-                     animation: {
-                        onComplete: function() {
-                           var base64 = lineChartOverTime.toBase64Image();
-                           $('#line_chart_img').val(base64);
-                        }
-                     },
-                     plugins: {
-                        legend: {
-                           display: true,
-                           position: 'bottom'
-                        },
-                        tooltip: {
-                           mode: 'index',
-                           intersect: false
-                        }
-                     },
-                     scales: {
-                        x: {
-                           ticks: {
-                              color: '#000'
-                           },
-                           title: {
-                              display: true,
-                              text: ''
-                           }
-                        },
-                        y: {
-                           beginAtZero: true,
-                           ticks: {
-                              color: '#000'
-                           },
-                           title: {
-                              display: true,
-                              text: 'Total Count'
-                           }
-                        }
-                     }
-                  }
-               });
-            }
-
-         });
-      }
+   $(document).on('change', 'select[name="months[]"]', function() {
+      reloadMonthTableStructure(); // rebuild columns
+      get_pre_client_dashboard();    // refresh charts
    });
+
+   $(document).on('change', 'select[name="frequency"], select[name="per_client[]"]', function() {
+      if ($.fn.DataTable.isDataTable('#dynamic-month-table')) {
+         $('#dynamic-month-table').DataTable().ajax.reload(null, false);
+      }
+      get_pre_client_dashboard();
+   });
+
+
+   var table_manage_client = $('.table-table_manage_client');
+
+   $(document).on('click', '.reset_all_filters', function() {
+      var filterArea = $('.all_filters');
+      filterArea.find('input').val("");
+      filterArea.find('select').selectpicker("val", "");
+      get_pre_client_dashboard();
+   });
+
+   get_pre_client_dashboard();
+
+
+   var lineChartOverTime;
+
+   function get_pre_client_dashboard() {
+      "use strict";
+
+      var data = {
+         months: $('select[name="months[]"]').val(),
+         frequency: $('select[name="frequency"]').val(),
+         per_client: $('select[name="per_client[]"]').val(),
+      }
+
+      $.post(admin_url + 'purchase/get_per_clients_charts', data).done(function(response) {
+         response = JSON.parse(response);
+
+
+         $('.total_clients').text(response.total_clients);
+         $('.total_investment').text('₹' + response.total_investment);
+         $('.total_earnings').text('₹' + response.total_earnings);
+         $('.last_month_average_profit').text('₹' + response.last_month_average_profit);
+
+         var staffBarCtx = document.getElementById('barChartTopStaffs').getContext('2d');
+         var staffLabels = response.bar_top_client_name;
+         var staffData = response.bar_top_client_value;
+
+         if (window.barTopStaffsChart) {
+            barTopStaffsChart.data.labels = staffLabels;
+            barTopStaffsChart.data.datasets[0].data = staffData;
+            setTimeout(function() {
+               var base64 = barTopStaffsChart.toBase64Image();
+               $('#bar_chart_img').val(base64);
+            }, 300);
+            barTopStaffsChart.update();
+         } else {
+            window.barTopStaffsChart = new Chart(staffBarCtx, {
+               type: 'bar',
+               data: {
+                  labels: staffLabels,
+                  datasets: [{
+                     label: 'Total Count',
+                     data: staffData,
+                     backgroundColor: '#1E90FF',
+                     borderColor: '#1E90FF',
+                     borderWidth: 1
+                  }]
+               },
+               options: {
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: {
+                     onComplete: function() {
+                        var base64 = barTopStaffsChart.toBase64Image();
+                        $('#bar_chart_img').val(base64);
+                     }
+                  },
+                  plugins: {
+                     legend: {
+                        display: false
+                     }
+                  },
+                  scales: {
+                     x: {
+                        beginAtZero: true,
+                        ticks: {
+                           color: '#000'
+                        },
+                        title: {
+                           display: true,
+                           text: '% Profit'
+                        }
+                     },
+                     y: {
+                        ticks: {
+                           autoSkip: false,
+                           color: '#000'
+                        },
+                        title: {
+                           display: true,
+                           text: 'Client'
+                        }
+                     }
+                  }
+               }
+            });
+         }
+
+         // Activity Type Breakdown
+         var lineCtx = document.getElementById('lineChartOverTime').getContext('2d');
+
+         if (lineChartOverTime) {
+            lineChartOverTime.data.labels = response.line_order_date;
+            lineChartOverTime.data.datasets[0].data = response.line_order_total;
+            setTimeout(function() {
+               var base64 = lineChartOverTime.toBase64Image();
+               $('#line_chart_img').val(base64);
+            }, 300);
+            lineChartOverTime.update();
+         } else {
+            lineChartOverTime = new Chart(lineCtx, {
+               type: 'line',
+               data: {
+                  labels: response.line_order_date,
+                  datasets: [{
+                     label: 'Total Count',
+                     data: response.line_order_total,
+                     fill: false,
+                     borderColor: 'rgba(54, 162, 235, 1)',
+                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                     tension: 0.3
+                  }]
+               },
+               options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: {
+                     onComplete: function() {
+                        var base64 = lineChartOverTime.toBase64Image();
+                        $('#line_chart_img').val(base64);
+                     }
+                  },
+                  plugins: {
+                     legend: {
+                        display: true,
+                        position: 'bottom'
+                     },
+                     tooltip: {
+                        mode: 'index',
+                        intersect: false
+                     }
+                  },
+                  scales: {
+                     x: {
+                        ticks: {
+                           color: '#000'
+                        },
+                        title: {
+                           display: true,
+                           text: ''
+                        }
+                     },
+                     y: {
+                        beginAtZero: true,
+                        ticks: {
+                           color: '#000'
+                        },
+                        title: {
+                           display: true,
+                           text: 'Total Count'
+                        }
+                     }
+                  }
+               }
+            });
+         }
+
+      });
+   }
 </script>
 <script src="<?php echo module_dir_url(PURCHASE_MODULE_NAME, 'assets/plugins/charts/chart.js'); ?>?v=<?php echo PURCHASE_REVISION; ?>"></script>
 </body>
@@ -438,7 +498,7 @@ $module_name = 'per_client'; ?>
       form.append($('<input>', {
          type: 'hidden',
          name: "csrf_token_name",
-         value: '733f6da668474ebbb369de4077db364c'
+         value: ''
       }));
       form.append($('<input>', {
          type: 'hidden',
@@ -490,7 +550,7 @@ $module_name = 'per_client'; ?>
       form.append($('<input>', {
          type: 'hidden',
          name: "csrf_token_name",
-         value: '733f6da668474ebbb369de4077db364c'
+         value: ''
       }));
 
       form.append($('<input>', {

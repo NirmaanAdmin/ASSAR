@@ -45,9 +45,29 @@
 
               <!-- Investment -->
               <div class="col-md-6">
-                <?php
-                $investment = (isset($assar) && $assar['investment'] != '') ? $assar['investment'] : '';
-                echo render_input('investment', 'Investment', $investment, 'number'); ?>
+                <div class="row">
+                  <div class="col-md-6">
+                    <?php
+                    $investment = (isset($assar) && $assar['investment'] != '') ? $assar['investment'] : '';
+                    echo render_input('investment', 'Investment', $investment, 'number'); ?>
+                  </div>
+                  <div class="col-md-6">
+                    <?php
+                    $frequency = (isset($assar) && $assar['frequency'] != '') ? $assar['frequency'] : '';
+                    $monthly_selected = ($frequency == 'monthly') ? 'selected' : '';
+                    $quarterly_selected = ($frequency == 'quarterly') ? 'selected' : '';
+                    ?>
+                    <div class="form-group">
+                      <label for="frequency" class="control-label">Frequency</label>
+                      <select name="frequency" id="frequency" class="form-control selectpicker">
+                        <option value=""></option>
+                        <option value="monthly" <?php echo $monthly_selected; ?>>Monthly</option>
+                        <option value="quarterly" <?php echo $quarterly_selected; ?>>Quarterly</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               <div class="col-md-6">
