@@ -13,7 +13,16 @@ $prev_month = $date->format('Y-m');
 // Build Date Range (8th -> 6th next month)
 // --------------------------------------------------
 $start = date('Y-m-08', strtotime($month . '-01'));
-$end   = date('Y-m-06', strtotime($start . ' +1 month'));
+
+// Check if the month is February
+$monthYear = DateTime::createFromFormat('Y-m', $month);
+if ($monthYear && $monthYear->format('m') == '02') {
+    // For February, set end date to 09th of next month
+    $end = date('Y-m-09', strtotime($start . ' +1 month'));
+} else {
+    // For other months, set end date to 06th of next month
+    $end = date('Y-m-06', strtotime($start . ' +1 month'));
+}
 
 // --------------------------------------------------
 // STEP 0: CALCULATE AVG CLIENT EARNINGS

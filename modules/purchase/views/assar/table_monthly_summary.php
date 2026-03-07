@@ -33,7 +33,12 @@ $client_pl_map = [];
 
 
 $month_start = date('Y-m-08', strtotime($month . '-01'));
-$month_end   = date('Y-m-07', strtotime($month_start . ' +1 month'));
+
+// Check if month is February (02)
+$isFebruary = (date('m', strtotime($month . '-01')) == '02');
+$month_end = $isFebruary 
+    ? date('Y-m-10', strtotime($month_start . ' +1 month'))  // For Feb: ends on 10th
+    : date('Y-m-07', strtotime($month_start . ' +1 month')); // For other months: ends on 7th
 $pl_results = $this->ci->db
     ->select('client_id, SUM(client_pl) as total_pl')
     ->from(db_prefix() . '_daily_return_snapshot')
