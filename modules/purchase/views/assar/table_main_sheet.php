@@ -107,7 +107,7 @@ foreach ($rResult as $aRow) {
 
         $row[] = $_data;
     }
-    $footer_data['investment'] += $aRow['net_rollver_amount'];
+    $footer_data['investment'] += $aRow['net_rollver_amount'] + ($aRow['increase_desc_amount'] ?? 0);
     $footer_data['client_earnings_forecast'] += $aRow['client_earnings'];
     $output['aaData'][] = $row;
 }
