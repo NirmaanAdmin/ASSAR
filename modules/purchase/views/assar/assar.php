@@ -471,7 +471,7 @@ $module_name = 'module_activity_log'; ?>
 
          let minimum_profit_required_everyday = isNaN(forecast) ?
             0 :
-            forecast / sums.client_count;
+            forecast / 30;
 
          $('.minimum_profit_required_everyday')
             .text('₹' + minimum_profit_required_everyday.toFixed(2));

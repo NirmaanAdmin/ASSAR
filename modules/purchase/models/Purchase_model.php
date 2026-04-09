@@ -27700,6 +27700,7 @@ class Purchase_model extends App_Model
     // Get months filter
     $start_month   = new DateTime('2025-08-01');
     $current_month = new DateTime(date('Y-m-01'));
+    $current_month->modify('-1 month');
 
     $selected_months = array();
     while ($start_month <= $current_month) {
@@ -27957,7 +27958,12 @@ class Purchase_model extends App_Model
 
 
     
+    $increase_amount_for_chart   = (float) get_increase_amount($clients_data[0]['id']); 
+    $total_investment_chart = (float)str_replace(',', '', $chart_data['total_investment']);
+    $total_investment_chart += (float)$increase_amount_for_chart;
 
+
+    $percent_profits_chart = $clients_data[0]['earned_to_date'] / $total_investment_chart * 100;
     // Statistics Section
     $html .= '
         <div class="statistics-section">
@@ -27966,7 +27972,7 @@ class Purchase_model extends App_Model
                     <td>
                         <div class="stat-box">
                             <div class="stat-title">' . _l('Total Investment') . '</div>
-                            <div class="stat-value">₹' . $chart_data['total_investment'] . '</div>
+                            <div class="stat-value">₹' . app_format_number($total_investment_chart,'') . '</div>
                         </div>
                     </td>
 
@@ -27980,7 +27986,7 @@ class Purchase_model extends App_Model
                     <td>
                         <div class="stat-box">
                             <div class="stat-title">' . _l('Percent Profits') . '</div>
-                            <div class="stat-value">' . $chart_data['percent_profits'] . '%</div>
+                            <div class="stat-value">' . app_format_number($percent_profits_chart, '') . '%</div>
                         </div>
                     </td>
 
@@ -28045,16 +28051,23 @@ class Purchase_model extends App_Model
             <tbody>';
 
         foreach ($clients_data as $client) {
+            $base_investment   = (float) $client['investment']; // existing investment
+            $increase_amount   = (float) get_increase_amount($client['id']); 
+            // final value = investment + increase/decrease
+            $total_investment = $base_investment + $increase_amount;
+
+            $percent_profits = $client['earned_to_date'] / $total_investment * 100;
             $html .= '
                 <tr>
                     <td>' . $client['client_id'] . '</td>
                     <td>' . $client['name'] . '</td>
                     <td>' . $client['phone'] . '</td>
                     <td>' . (!empty($client['start_date']) ? date('d M, Y', strtotime($client['start_date'])) : '') . '</td>
-                    <td class="number-cell">₹' . app_format_number($client['investment'], '') . '</td>
+                    
+                    <td class="number-cell">₹' . app_format_number($total_investment, '') . '</td>
                     <td>' . $client['frequency'] . '</td>
                     <td class="number-cell">₹' . app_format_number($client['earned_to_date'], '') . '</td>
-                    <td class="percent-cell">' . app_format_number($client['percent_profits'], '') . '%</td>
+                    <td class="percent-cell">' . app_format_number($percent_profits, '') . '%</td>
                 </tr>';
         }
 
