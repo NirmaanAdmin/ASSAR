@@ -17935,9 +17935,9 @@ class purchase extends AdminController
         // 2) Fetch clients with both net_rollver (previous month) and monthly_investments (current month)
         $clients = $this->db
             ->select('c.*, 
-    nr.net_rollver_amount, 
-    mi.monthly_investment,
-    m_inc.increase_desc_amount')
+        nr.net_rollver_amount, 
+        mi.monthly_investment,
+        m_inc.increase_desc_amount')
             ->from('tblassar_clients c')
             // Left join for net_rollver (previous month)
             ->join('tblassar_net_rollver nr', 'nr.client_id = c.id AND nr.month = "' . $previousMonth . '"', 'left')

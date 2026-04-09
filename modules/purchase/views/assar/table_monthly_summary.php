@@ -36,7 +36,7 @@ $month_start = date('Y-m-08', strtotime($month . '-01'));
 
 // Check if month is February (02)
 $isFebruary = (date('m', strtotime($month . '-01')) == '02');
-$month_end = $isFebruary 
+$month_end = $isFebruary
     ? date('Y-m-10', strtotime($month_start . ' +1 month'))  // For Feb: ends on 10th
     : date('Y-m-07', strtotime($month_start . ' +1 month')); // For other months: ends on 7th
 $pl_results = $this->ci->db
@@ -263,17 +263,21 @@ foreach ($clients as $c) {
     // ----------------------------------
     // INSERT OR UPDATE
     // ----------------------------------
-    if ($exists) {
+    $monthNumber = date('n', strtotime($summary_month . '-01'));
 
-        $this->ci->db
-            ->where('id', $exists->id)
-            ->update('tblassar_monthly_summary', $save);
-    } else {
-        $save['rolled_over'] = 2;
-        $this->ci->db->insert(
-            'tblassar_monthly_summary',
-            $save
-        );
+    if ($monthNumber != 3) {
+        // Only proceed with update/insert if month is NOT March
+        if ($exists) {
+            $this->ci->db
+                ->where('id', $exists->id)
+                ->update('tblassar_monthly_summary', $save);
+        } else {
+            $save['rolled_over'] = 2;
+            $this->ci->db->insert(
+                'tblassar_monthly_summary',
+                $save
+            );
+        }
     }
 
     // ----------------------------------
