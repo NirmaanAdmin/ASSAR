@@ -27693,451 +27693,450 @@ class Purchase_model extends App_Model
     
 
    public function get_per_single_client_pdf_html($data, $client_id)
-{
-    // Get filter data from module filter storage instead of POST
-    $module_name = 'per_client';
-    
-    // Get months filter
-    $start_month   = new DateTime('2025-08-01');
-    $current_month = new DateTime(date('Y-m-01'));
-    $current_month->modify('-1 month');
+    {
+        // Get filter data from module filter storage instead of POST
+        $module_name = 'per_client';
+        
+        // Get months filter
+        $start_month   = new DateTime('2025-08-01');
+        $current_month = new DateTime(date('Y-m-01'));
+        $current_month->modify('-1 month');
 
-    $selected_months = array();
-    while ($start_month <= $current_month) {
-        $selected_months[] = $start_month->format('Y-m');
-        $start_month->modify('+1 month');
-    }
-
-    
-    // Get per_client filter (though for single client, we override with the specific client_id)
-    $client_filter = get_module_filter($module_name, 'per_client');
-    $per_client = array($client_id); // Force single client
-    
-    // Get frequency filter
-    $frequency_filter = get_module_filter($module_name, 'frequency');
-    $frequency = '';
-    if (!empty($frequency_filter) && !empty($frequency_filter->filter_value)) {
-        $frequency = $frequency_filter->filter_value;
-    }
-    
-    // Prepare data array for chart function
-    $chart_params = array(
-        'months' => $selected_months,
-        'frequency' => $frequency,
-        'per_client' => $per_client
-    );
-    
-    // Get chart data
-    $chart_data = $this->get_per_by_id_clients_charts($chart_params, $client_id);
-    
-    // Build query for client table data - same as datatable query
-    $this->db->select("
-        " . db_prefix() . "assar_clients.id,
-        " . db_prefix() . "assar_clients.client_id,
-        " . db_prefix() . "assar_clients.name,
-        " . db_prefix() . "assar_clients.phone,
-        " . db_prefix() . "assar_clients.start_date,
-        " . db_prefix() . "assar_clients.investment,
-        " . db_prefix() . "assar_clients.frequency,
-        COALESCE(SUM(ams.total_pl), 0) as earned_to_date,
-        CASE 
-            WHEN " . db_prefix() . "assar_clients.investment > 0 
-            THEN (COALESCE(SUM(ams.total_pl), 0) / " . db_prefix() . "assar_clients.investment) * 100 
-            ELSE 0 
-        END as percent_profits
-    ");
-    
-    // Add dynamic month columns
-    $month_columns = array();
-    $month_display_names = array();
-    if (!empty($selected_months)) {
-        foreach ($selected_months as $month) {
-            $month_date = new DateTime($month . '-01');
-            $db_month = $month_date->format('Y-m');
-            $month_key = strtolower($month_date->format('F_Y'));
-            $display_name = $month_date->format('F Y');
-            
-            $month_columns[] = $month_key;
-            $month_display_names[$month_key] = $display_name;
-            
-            $this->db->select("
-                COALESCE(MAX(CASE WHEN ams.month = '" . $db_month . "' THEN ams.total_pl END), 0) as " . $month_key
-            );
-        }
-    }
-    
-    $this->db->from(db_prefix() . 'assar_clients');
-    $this->db->join(db_prefix() . 'assar_monthly_summary ams', 'ams.client_pk_id = ' . db_prefix() . 'assar_clients.id', 'left');
-    
-    // Apply filters
-    // if (!empty($selected_months)) {
-    //     $this->db->group_start();
-    //     foreach ($selected_months as $month) {
-    //         $this->db->or_where('ams.month', $month);
-    //     }
-    //     $this->db->group_end();
-    // }
-    
-    if (!empty($frequency) && $frequency !== 'all') {
-        $this->db->where(db_prefix() . 'assar_clients.frequency', $frequency);
-    }
-    
-    // Always filter by the specific client for single client report
-    $this->db->where(db_prefix() . 'assar_clients.id', $client_id);
-    
-    $this->db->group_by(db_prefix() . 'assar_clients.id');
-    $clients_data = $this->db->get()->result_array();
-    
-    // Get chart images
-    $chartImgs = $this->get_single_client_chart_images($client_id, $chart_params);
-    
-    // Get client name
-    $client_name = !empty($clients_data[0]['name']) ? $clients_data[0]['name'] : 'Client #' . $client_id;
-    
-    // Start HTML
-    $html = '
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta charset="UTF-8">
-    <style>
-
-        /* ===============================
-            FORCE ALL CONTENT INTO ONE PAGE
-        =============================== */
-        @page {
-            size: A0 portrait; /* BIG SIZE = ONE PAGE PDF */
-            margin: 10mm;
+        $selected_months = array();
+        while ($start_month <= $current_month) {
+            $selected_months[] = $start_month->format('Y-m');
+            $start_month->modify('+1 month');
         }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            color: #333;
-        }
-
-        /* REMOVE ALL PAGE BREAKS */
-        * {
-            page-break-before: avoid !important;
-            page-break-after: avoid !important;
-            page-break-inside: avoid !important;
-
-            break-before: avoid !important;
-            break-after: avoid !important;
-            break-inside: avoid !important;
-        }
-
-        .pdf-container {
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        .header p {
-            color: #7f8c8d;
-            margin-top: 0;
-        }
-
-        .statistics-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 10px;
-        }
-        .statistics-table td {
-            width: 25%;
-            vertical-align: top;
-        }
-
-        .stat-box {
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            padding: 15px;
-            background-color: #f9f9f9;
-        }
-
-        .stat-title {
-            font-weight: bold;
-            font-size: 14px;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
-        }
-        .stat-value {
-            font-size: 18px;
-            color: #27ae60;
-            font-weight: bold;
-        }
-
-        .client-table-section {
-            margin-top: 30px;
-        }
-        .client-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 11px;
-        }
-        .client-table th {
-            background-color: #34495e;
-            color: white;
-            padding: 10px 8px;
-            text-align: left;
-            font-weight: bold;
-        }
-        .client-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            vertical-align: top;
-        }
-        .client-table tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        .client-table .number-cell {
-            text-align: right;
-            font-family: "Courier New", monospace;
-        }
-
-        .charts-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .chart-box {
-            border: 1px solid #e0e0e0;
-            padding: 6px;
-            margin-bottom: 10px;
-        }
-
-        .chart-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 0 0 6px 0;
-            padding: 0 0 4px 0;
-        }
-        .statistics-section{
-            margin-top: 30px;
+        
+        // Get per_client filter (though for single client, we override with the specific client_id)
+        $client_filter = get_module_filter($module_name, 'per_client');
+        $per_client = array($client_id); // Force single client
+        
+        // Get frequency filter
+        $frequency_filter = get_module_filter($module_name, 'frequency');
+        $frequency = '';
+        if (!empty($frequency_filter) && !empty($frequency_filter->filter_value)) {
+            $frequency = $frequency_filter->filter_value;
         }
         
-        .filter-info {
-            background-color: #f8f9fa;
-            border-left: 4px solid #3498db;
-            padding: 10px;
-            margin-bottom: 20px;
-            font-size: 11px;
-        }
-        .filter-info strong {
-            color: #2c3e50;
-        }
+        // Prepare data array for chart function
+        $chart_params = array(
+            'months' => $selected_months,
+            'frequency' => $frequency,
+            'per_client' => $per_client
+        );
         
-        .client-table .percent-cell {
-            text-align: right;
-            color: #27ae60;
-            font-weight: bold;
-        }
-
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
+        // Get chart data
+        $chart_data = $this->get_per_by_id_clients_charts($chart_params, $client_id);
+       
+        // Build query for client table data - same as datatable query
+        $this->db->select("
+            " . db_prefix() . "assar_clients.id,
+            " . db_prefix() . "assar_clients.client_id,
+            " . db_prefix() . "assar_clients.name,
+            " . db_prefix() . "assar_clients.phone,
+            " . db_prefix() . "assar_clients.start_date,
+            " . db_prefix() . "assar_clients.investment,
+            " . db_prefix() . "assar_clients.frequency,
+            COALESCE(SUM(ams.total_pl), 0) as earned_to_date,
+            CASE 
+                WHEN " . db_prefix() . "assar_clients.investment > 0 
+                THEN (COALESCE(SUM(ams.total_pl), 0) / " . db_prefix() . "assar_clients.investment) * 100 
+                ELSE 0 
+            END as percent_profits
+        ");
+        
+        // Add dynamic month columns
+        $month_columns = array();
+        $month_display_names = array();
+        if (!empty($selected_months)) {
+            foreach ($selected_months as $month) {
+                $month_date = new DateTime($month . '-01');
+                $db_month = $month_date->format('Y-m');
+                $month_key = strtolower($month_date->format('F_Y'));
+                $display_name = $month_date->format('F Y');
+                
+                $month_columns[] = $month_key;
+                $month_display_names[$month_key] = $display_name;
+                
+                $this->db->select("
+                    COALESCE(MAX(CASE WHEN ams.month = '" . $db_month . "' THEN ams.total_pl END), 0) as " . $month_key
+                );
             }
         }
-
-    </style>
-    </head>
-    <body>
-    <div class="pdf-container">';
-
-
-    
-    $increase_amount_for_chart   = (float) get_increase_amount($clients_data[0]['id']); 
-    $total_investment_chart = (float)str_replace(',', '', $chart_data['total_investment']);
-    $total_investment_chart += (float)$increase_amount_for_chart;
-
-
-    $percent_profits_chart = $clients_data[0]['earned_to_date'] / $total_investment_chart * 100;
-    // Statistics Section
-    $html .= '
-        <div class="statistics-section">
-            <table class="statistics-table">
-                <tr>
-                    <td>
-                        <div class="stat-box">
-                            <div class="stat-title">' . _l('Total Investment') . '</div>
-                            <div class="stat-value">₹' . app_format_number($total_investment_chart,'') . '</div>
-                        </div>
-                    </td>
-
-                    <td>
-                        <div class="stat-box">
-                            <div class="stat-title">' . _l('Total Earnings') . '</div>
-                            <div class="stat-value">₹' . $chart_data['total_earnings'] . '</div>
-                        </div>
-                    </td>
-
-                    <td>
-                        <div class="stat-box">
-                            <div class="stat-title">' . _l('Percent Profits') . '</div>
-                            <div class="stat-value">' . app_format_number($percent_profits_chart, '') . '%</div>
-                        </div>
-                    </td>
-
-                    <td>
-                        <div class="stat-box">
-                            <div class="stat-title">' . _l('Average Monthly Profit') . '</div>
-                            <div class="stat-value">₹' . $chart_data['last_month_average_profit'] . '</div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>';
-
-    // Chart Section
-    if (!empty($chartImgs['line'])) {
-        $html .= '
-        <table class="charts-table" style="page-break-after:always" cellpadding="4" cellspacing="0">
-            <tr>
-                <td width="100%" valign="top">
-                    <div class="chart-box">
-                        <h3 class="chart-title">Monthly Earnings Trend</h3>
-                        <img src="' . $chartImgs['line'] . '" width="770" />
-                    </div>
-                </td>
-            </tr>
-        </table><br><br>';
         
-        if (!empty($chartImgs['percentage_line'])) {
+        $this->db->from(db_prefix() . 'assar_clients');
+        $this->db->join(db_prefix() . 'assar_monthly_summary ams', 'ams.client_pk_id = ' . db_prefix() . 'assar_clients.id', 'left');
+        
+        // Apply filters
+        // if (!empty($selected_months)) {
+        //     $this->db->group_start();
+        //     foreach ($selected_months as $month) {
+        //         $this->db->or_where('ams.month', $month);
+        //     }
+        //     $this->db->group_end();
+        // }
+        
+        if (!empty($frequency) && $frequency !== 'all') {
+            $this->db->where(db_prefix() . 'assar_clients.frequency', $frequency);
+        }
+        
+        // Always filter by the specific client for single client report
+        $this->db->where(db_prefix() . 'assar_clients.id', $client_id);
+        
+        $this->db->group_by(db_prefix() . 'assar_clients.id');
+        $clients_data = $this->db->get()->result_array();   
+        // Get chart images
+        $chartImgs = $this->get_single_client_chart_images($client_id, $chart_params);
+        
+        // Get client name
+        $client_name = !empty($clients_data[0]['name']) ? $clients_data[0]['name'] : 'Client #' . $client_id;
+        
+        // Start HTML
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <style>
+
+            /* ===============================
+                FORCE ALL CONTENT INTO ONE PAGE
+            =============================== */
+            @page {
+                size: A0 portrait; /* BIG SIZE = ONE PAGE PDF */
+                margin: 10mm;
+            }
+
+            html, body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                color: #333;
+            }
+
+            /* REMOVE ALL PAGE BREAKS */
+            * {
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+
+                break-before: avoid !important;
+                break-after: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .pdf-container {
+                width: 100%;
+                margin: 0 auto;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .header h1 {
+                color: #2c3e50;
+                margin-bottom: 5px;
+            }
+            .header p {
+                color: #7f8c8d;
+                margin-top: 0;
+            }
+
+            .statistics-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 10px;
+            }
+            .statistics-table td {
+                width: 25%;
+                vertical-align: top;
+            }
+
+            .stat-box {
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
+                padding: 15px;
+                background-color: #f9f9f9;
+            }
+
+            .stat-title {
+                font-weight: bold;
+                font-size: 14px;
+                color: #2c3e50;
+                margin-bottom: 8px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 5px;
+            }
+            .stat-value {
+                font-size: 18px;
+                color: #27ae60;
+                font-weight: bold;
+            }
+
+            .client-table-section {
+                margin-top: 30px;
+            }
+            .client-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 11px;
+            }
+            .client-table th {
+                background-color: #34495e;
+                color: white;
+                padding: 10px 8px;
+                text-align: left;
+                font-weight: bold;
+            }
+            .client-table td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                vertical-align: top;
+            }
+            .client-table tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            .client-table .number-cell {
+                text-align: right;
+                font-family: "Courier New", monospace;
+            }
+
+            .charts-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .chart-box {
+                border: 1px solid #e0e0e0;
+                padding: 6px;
+                margin-bottom: 10px;
+            }
+
+            .chart-title {
+                font-size: 14px;
+                font-weight: bold;
+                margin: 0 0 6px 0;
+                padding: 0 0 4px 0;
+            }
+            .statistics-section{
+                margin-top: 30px;
+            }
+            
+            .filter-info {
+                background-color: #f8f9fa;
+                border-left: 4px solid #3498db;
+                padding: 10px;
+                margin-bottom: 20px;
+                font-size: 11px;
+            }
+            .filter-info strong {
+                color: #2c3e50;
+            }
+            
+            .client-table .percent-cell {
+                text-align: right;
+                color: #27ae60;
+                font-weight: bold;
+            }
+
+            @media print {
+                body {
+                    -webkit-print-color-adjust: exact;
+                }
+            }
+
+        </style>
+        </head>
+        <body>
+        <div class="pdf-container">';
+
+
+        
+        $increase_amount_for_chart   = (float) get_increase_amount($clients_data[0]['id']); 
+        $total_investment_chart = (float)str_replace(',', '', $chart_data['total_investment']);
+        $total_investment_chart += (float)$increase_amount_for_chart;
+
+
+        $percent_profits_chart = $clients_data[0]['earned_to_date'] / $total_investment_chart * 100;
+        // Statistics Section
+        $html .= '
+            <div class="statistics-section">
+                <table class="statistics-table">
+                    <tr>
+                        <td>
+                            <div class="stat-box">
+                                <div class="stat-title">' . _l('Total Investment') . '</div>
+                                <div class="stat-value">₹' . app_format_number($total_investment_chart,'') . '</div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="stat-box">
+                                <div class="stat-title">' . _l('Total Earnings') . '</div>
+                                <div class="stat-value">₹' . $chart_data['total_earnings'] . '</div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="stat-box">
+                                <div class="stat-title">' . _l('Percent Profits') . '</div>
+                                <div class="stat-value">' . app_format_number($percent_profits_chart, '') . '%</div>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="stat-box">
+                                <div class="stat-title">' . _l('Average Monthly Profit') . '</div>
+                                <div class="stat-value">₹' . $chart_data['last_month_average_profit'] . '</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>';
+
+        // Chart Section
+        if (!empty($chartImgs['line'])) {
             $html .= '
-            <table class="charts-table "  cellpadding="4" cellspacing="0">
+            <table class="charts-table" style="page-break-after:always" cellpadding="4" cellspacing="0">
                 <tr>
                     <td width="100%" valign="top">
                         <div class="chart-box">
-                            <h3 class="chart-title">Monthly Earnings Trend %</h3>
-                            <img src="' . $chartImgs['percentage_line'] . '" width="770" />
+                            <h3 class="chart-title">Monthly Earnings Trend</h3>
+                            <img src="' . $chartImgs['line'] . '" width="770" />
                         </div>
                     </td>
                 </tr>
             </table><br><br>';
-        }
-    }
-
-    // Client Data Table
-    $html .= '<div class="client-table-section">';
-
-    if (!empty($clients_data)) {
-
-        $html .= '
-        <table class="client-table">
-            <thead>
-                <tr>
-                    <th width="6%">' . _l('Client Id') . '</th>
-                    <th width="15%">' . _l('Name') . '</th>
-                    <th width="10%">' . _l('Phone') . '</th>
-                    <th width="10%">' . _l('Start Date') . '</th>
-                    <th width="10%">' . _l('Investment') . '</th>
-                    <th width="8%">' . _l('Frequency') . '</th>
-                    <th width="8%">' . _l('Earned To Date') . '</th>
-                    <th width="8%">' . _l('Percent Profits') . '</th>
-                </tr>
-            </thead>
-            <tbody>';
-
-        foreach ($clients_data as $client) {
-            $base_investment   = (float) $client['investment']; // existing investment
-            $increase_amount   = (float) get_increase_amount($client['id']); 
-            // final value = investment + increase/decrease
-            $total_investment = $base_investment + $increase_amount;
-
-            $percent_profits = $client['earned_to_date'] / $total_investment * 100;
-            $html .= '
-                <tr>
-                    <td>' . $client['client_id'] . '</td>
-                    <td>' . $client['name'] . '</td>
-                    <td>' . $client['phone'] . '</td>
-                    <td>' . (!empty($client['start_date']) ? date('d M, Y', strtotime($client['start_date'])) : '') . '</td>
-                    
-                    <td class="number-cell">₹' . app_format_number($total_investment, '') . '</td>
-                    <td>' . $client['frequency'] . '</td>
-                    <td class="number-cell">₹' . app_format_number($client['earned_to_date'], '') . '</td>
-                    <td class="percent-cell">' . app_format_number($percent_profits, '') . '%</td>
-                </tr>';
+            
+            if (!empty($chartImgs['percentage_line'])) {
+                $html .= '
+                <table class="charts-table "  cellpadding="4" cellspacing="0">
+                    <tr>
+                        <td width="100%" valign="top">
+                            <div class="chart-box">
+                                <h3 class="chart-title">Monthly Earnings Trend %</h3>
+                                <img src="' . $chartImgs['percentage_line'] . '" width="770" />
+                            </div>
+                        </td>
+                    </tr>
+                </table><br><br>';
+            }
         }
 
-        $html .= '</tbody></table>';
+        // Client Data Table
+        $html .= '<div class="client-table-section">';
 
-        // Month Breakdown Table (NO page break)
-        if (!empty($month_columns)) {
+        if (!empty($clients_data)) {
+
             $html .= '
-            <h3 style="text-align: center; margin: 20px 0;">' . _l('Individual Month Breakdown') . '</h3>
-
             <table class="client-table">
                 <thead>
                     <tr>
                         <th width="6%">' . _l('Client Id') . '</th>
-                        <th width="15%">' . _l('Name') . '</th>';
-            
-            // Add month columns dynamically
-            foreach ($month_display_names as $month_key => $display_name) {
-                $html .= '<th width="8%">' . _l($display_name) . '</th>';
-            }
-            
-            $html .= '
+                        <th width="15%">' . _l('Name') . '</th>
+                        <th width="10%">' . _l('Phone') . '</th>
+                        <th width="10%">' . _l('Start Date') . '</th>
+                        <th width="10%">' . _l('Investment') . '</th>
+                        <th width="8%">' . _l('Frequency') . '</th>
+                        <th width="8%">' . _l('Earned To Date') . '</th>
+                        <th width="8%">' . _l('Percent Profits') . '</th>
                     </tr>
                 </thead>
                 <tbody>';
 
-            // Initialize totals for each month
-            $month_totals = array();
-            foreach ($month_columns as $month_key) {
-                $month_totals[$month_key] = 0;
-            }
-            
             foreach ($clients_data as $client) {
+                $base_investment   = (float) $client['investment']; // existing investment
+                $increase_amount   = (float) get_increase_amount($client['id']); 
+                // final value = investment + increase/decrease
+                $total_investment = $base_investment + $increase_amount;
+
+                $percent_profits = $client['earned_to_date'] / $total_investment * 100;
                 $html .= '
                     <tr>
                         <td>' . $client['client_id'] . '</td>
-                        <td>' . $client['name'] . '</td>';
+                        <td>' . $client['name'] . '</td>
+                        <td>' . $client['phone'] . '</td>
+                        <td>' . (!empty($client['start_date']) ? date('d M, Y', strtotime($client['start_date'])) : '') . '</td>
+                        
+                        <td class="number-cell">₹' . app_format_number($total_investment, '') . '</td>
+                        <td>' . $client['frequency'] . '</td>
+                        <td class="number-cell">₹' . app_format_number($client['earned_to_date'], '') . '</td>
+                        <td class="percent-cell">' . app_format_number($percent_profits, '') . '%</td>
+                    </tr>';
+            }
+
+            $html .= '</tbody></table>';
+
+            // Month Breakdown Table (NO page break)
+            if (!empty($month_columns)) {
+                $html .= '
+                <h3 style="text-align: center; margin: 20px 0;">' . _l('Individual Month Breakdown') . '</h3>
+
+                <table class="client-table">
+                    <thead>
+                        <tr>
+                            <th width="6%">' . _l('Client Id') . '</th>
+                            <th width="15%">' . _l('Name') . '</th>';
+                
+                // Add month columns dynamically
+                foreach ($month_display_names as $month_key => $display_name) {
+                    $html .= '<th width="8%">' . _l($display_name) . '</th>';
+                }
+                
+                $html .= '
+                        </tr>
+                    </thead>
+                    <tbody>';
+
+                // Initialize totals for each month
+                $month_totals = array();
+                foreach ($month_columns as $month_key) {
+                    $month_totals[$month_key] = 0;
+                }
+                
+                foreach ($clients_data as $client) {
+                    $html .= '
+                        <tr>
+                            <td>' . $client['client_id'] . '</td>
+                            <td>' . $client['name'] . '</td>';
+                    
+                    foreach ($month_columns as $month_key) {
+                        $month_value = isset($client[$month_key]) ? (float)$client[$month_key] : 0;
+                        $month_totals[$month_key] += $month_value;
+                        
+                        $html .= '<td class="number-cell">₹' . app_format_number($month_value, '') . '</td>';
+                    }
+                    
+                    $html .= '</tr>';
+                }
+
+                $html .= '
+                        <tr style="background-color: #34495e; color: white; font-weight: bold;">
+                            <td colspan="2">' . _l('Monthly Totals') . '</td>';
                 
                 foreach ($month_columns as $month_key) {
-                    $month_value = isset($client[$month_key]) ? (float)$client[$month_key] : 0;
-                    $month_totals[$month_key] += $month_value;
-                    
-                    $html .= '<td class="number-cell">₹' . app_format_number($month_value, '') . '</td>';
+                    $html .= '<td class="number-cell">₹' . app_format_number($month_totals[$month_key], '') . '</td>';
                 }
                 
                 $html .= '</tr>';
+
+                $html .= '</tbody></table>';
             }
 
-            $html .= '
-                    <tr style="background-color: #34495e; color: white; font-weight: bold;">
-                        <td colspan="2">' . _l('Monthly Totals') . '</td>';
-            
-            foreach ($month_columns as $month_key) {
-                $html .= '<td class="number-cell">₹' . app_format_number($month_totals[$month_key], '') . '</td>';
-            }
-            
-            $html .= '</tr>';
-
-            $html .= '</tbody></table>';
+        } else {
+            $html .= '<p style="text-align:center;padding:30px;color:#7f8c8d;">' . _l('No client data found with the applied filters') . '</p>';
         }
 
-    } else {
-        $html .= '<p style="text-align:center;padding:30px;color:#7f8c8d;">' . _l('No client data found with the applied filters') . '</p>';
+        $html .= '</div>'; // client-table-section
+        $html .= '</div></body></html>';
+
+        return $html;
     }
-
-    $html .= '</div>'; // client-table-section
-    $html .= '</div></body></html>';
-
-    return $html;
-}
 
 
     // public function get_per_by_id_clients_charts($data = array(), $client_id = null)
@@ -29156,5 +29155,11 @@ public function get_single_client_chart_images($client_id, $data = [])
         $this->db->select('id, name');
         $this->db->from(db_prefix() . 'assar_clients');
         return $this->db->get()->result_array();
+    }
+
+    public function get_client_by_id_new($client_id){
+        
+        $this->db->where('id', $client_id);
+        return $this->db->get(db_prefix().'assar_clients')->row();
     }
 }

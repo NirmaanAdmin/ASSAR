@@ -17339,7 +17339,7 @@ class purchase extends AdminController
         // If no specific clients selected -> export all clients
         if (empty($client_ids)) {
             $client_ids = $this->purchase_model->get_all_client_ids($frequency); // create this function
-            // $client_ids = ["0" => "1"];
+            // $client_ids = ["0" => "37"];
         }
 
         if (empty($client_ids)) {
@@ -17355,7 +17355,7 @@ class purchase extends AdminController
         // Generate PDF for each client
         foreach ($client_ids as $client_id) {
 
-            $client = $this->purchase_model->get_client_by_id($client_id);
+            $client = $this->purchase_model->get_client_by_id_new($client_id);
             if (!$client) {
                 continue;
             }
