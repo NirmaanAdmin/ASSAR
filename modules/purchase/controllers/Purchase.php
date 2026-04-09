@@ -17744,6 +17744,149 @@ class purchase extends AdminController
         echo json_encode(['success' => true]);
     }
 
+    // public function get_clients_for_daily_return()
+    // {
+    //     $from  = $this->input->post('from_date');
+    //     $to    = $this->input->post('to_date');
+    //     $month = $this->input->post('month'); // YYYY-MM
+    //     $previousMonth = date('Y-m', strtotime($month . '-01 -1 month'));
+    //     $date = DateTime::createFromFormat('Y-m', $month);
+    //     $lastDayOfMonth = $date->format('Y-m-t'); // 't' gives last day of month
+
+    //     if (!$from || !$to || !$month) {
+    //         echo json_encode([]);
+    //         return;
+    //     }
+
+    //     // 1) Calculate total return % for selected range
+    //     $total_return = $this->db
+    //         ->select('IFNULL(SUM(return_per),0) as total')
+    //         ->from('tbldaily_return_net')
+    //         ->where('entry_date >=', $from)
+    //         ->where('entry_date <=', $to)
+    //         ->get()
+    //         ->row()
+    //         ->total;
+
+    //     // 2) Fetch clients with both net_rollver (previous month) and monthly_investments (current month)
+    //     $clients = $this->db
+    //         ->select('c.*, 
+    //     nr.net_rollver_amount, 
+    //     mi.monthly_investment,
+    //     m_inc.increase_desc_amount')
+    //         ->from('tblassar_clients c')
+    //         // Left join for net_rollver (previous month)
+    //         ->join('tblassar_net_rollver nr', 'nr.client_id = c.id AND nr.month = "' . $previousMonth . '"', 'left')
+    //         // Left join for monthly_investments (current month)
+    //         ->join('tblassar_monthly_investments mi', 'mi.client_id = c.id AND mi.month = "' . $month . '"', 'left')
+    //         ->join('tblassar_monthly_increase m_inc', 'm_inc.client_id = c.id AND m_inc.month = "' . $month . '"', 'left') // Join for monthly increase/decrease
+    //         ->where('c.start_date <=', $lastDayOfMonth)
+    //         ->get()
+    //         ->result_array();
+
+    //     // 3) Get existing cumulative P&L for each client within the same month
+    //     $existingCumulativePl = [];
+    //     $existingAccumulatedPl = [];
+
+    //     // FIXED: Added proper error handling and table existence check
+    //     try {
+    //         // First check if table has any records for the month
+    //         $hasRecords = $this->db
+    //             ->from('tbl_daily_return_snapshot')
+    //             ->where('month', $month)
+    //             ->count_all_results();
+
+    //         if ($hasRecords > 0) {
+    //             $existingRecords = $this->db
+    //                 ->select('client_pk_id, 
+    //                 IFNULL(SUM(client_pl), 0) as cumulative_pl, 
+    //                 IFNULL(MAX(accumulated_pl), 0) as max_accumulated')
+    //                 ->from('tbl_daily_return_snapshot')
+    //                 ->where('month', $month)
+    //                 ->where('date_to <', $from)
+    //                 ->group_by('client_pk_id')
+    //                 ->get()
+    //                 ->result_array();
+
+    //             foreach ($existingRecords as $record) {
+    //                 $existingCumulativePl[$record['client_pk_id']] = floatval($record['cumulative_pl']);
+    //                 $existingAccumulatedPl[$record['client_pk_id']] = floatval($record['max_accumulated']);
+    //             }
+    //         }
+    //     } catch (Exception $e) {
+    //         // Log error if needed
+    //         log_message('error', 'Error fetching existing records: ' . $e->getMessage());
+    //         // Initialize empty arrays on error
+    //         $existingCumulativePl = [];
+    //         $existingAccumulatedPl = [];
+    //     }
+
+    //     $insertData = [];
+
+    //     foreach ($clients as $c) {
+    //         // Get assar_holds_amount from net_rollver (previous month)
+    //         $assar_holds_amount = isset($c['net_rollver_amount']) && $c['net_rollver_amount'] > 0
+    //             ? $c['net_rollver_amount'] + (isset($c['increase_desc_amount']) ? $c['increase_desc_amount'] : 0)
+    //             : $c['investment'];
+
+    //         // Get investment_amount from monthly_investments (current month)
+    //         $investment_amount = isset($c['monthly_investment']) && $c['monthly_investment'] > 0
+    //             ? $c['monthly_investment']
+    //             : $c['investment'];
+
+    //         $pl = ($assar_holds_amount * $total_return) / 100;
+
+    //         // Calculate cumulative_month_pl - use 0 if not found
+    //         $existing_cumulative_pl = isset($existingCumulativePl[$c['id']]) ?
+    //             floatval($existingCumulativePl[$c['id']]) : 0;
+    //         $cumulative_month_pl = $existing_cumulative_pl + $pl;
+
+    //         // Calculate accumulated_pl - use 0 if not found
+    //         $existing_accumulated_pl = isset($existingAccumulatedPl[$c['id']]) ?
+    //             floatval($existingAccumulatedPl[$c['id']]) : 0;
+    //         $accumulated_pl = $existing_accumulated_pl + $pl;
+    //         $accumulated_pl_amount = $assar_holds_amount + $accumulated_pl - $investment_amount;
+
+    //         $insertData[] = [
+    //             'month' => $month,
+    //             'date_from' => $from,
+    //             'date_to' => $to,
+    //             'client_id' => $c['client_id'],
+    //             'client_pk_id' => $c['id'],
+    //             'client_name' => $c['name'],
+    //             'investment' => $investment_amount,
+    //             'assar_holds' => $assar_holds_amount,
+    //             'client_pl_percent' => $total_return,
+    //             'client_pl' => $pl,
+    //             'cumulative_month_pl' => $cumulative_month_pl,
+    //             'accumulated_pl' => $accumulated_pl_amount,
+    //             'cumulative_capital' => $assar_holds_amount + $accumulated_pl_amount
+    //         ];
+    //     }
+
+    //     // 4) Delete same range ONLY inside same month
+    //     $this->db
+    //         ->where('month', $month)
+    //         ->where('date_from', $from)
+    //         ->where('date_to', $to)
+    //         ->delete('tbl_daily_return_snapshot');
+
+    //     // 5) Insert snapshot only if we have data
+    //     if (!empty($insertData)) {
+    //         $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
+    //     }
+
+    //     // 6) Fetch snapshot rows for this range + month
+    //     $result = $this->db
+    //         ->where('month', $month)
+    //         ->where('date_from', $from)
+    //         ->where('date_to', $to)
+    //         ->get('tbl_daily_return_snapshot')
+    //         ->result_array();
+
+    //     echo json_encode($result);
+    // }
+
     public function get_clients_for_daily_return()
     {
         $from  = $this->input->post('from_date');
@@ -17756,6 +17899,27 @@ class purchase extends AdminController
         if (!$from || !$to || !$month) {
             echo json_encode([]);
             return;
+        }
+
+        // Check if it's March 2026
+        $isMarch2026 = ($month == '2026-03');
+
+        // For March 2026, check if entry already exists
+        if ($isMarch2026) {
+            $existingEntry = $this->db
+                ->where('month', $month)
+                ->get('tbl_daily_return_snapshot')
+                ->num_rows();
+
+            // If entry exists for March 2026, just return existing data without any changes
+            if ($existingEntry > 0) {
+                $result = $this->db
+                    ->where('month', $month)
+                    ->get('tbl_daily_return_snapshot')
+                    ->result_array();
+                echo json_encode($result);
+                return;
+            }
         }
 
         // 1) Calculate total return % for selected range
@@ -17771,9 +17935,9 @@ class purchase extends AdminController
         // 2) Fetch clients with both net_rollver (previous month) and monthly_investments (current month)
         $clients = $this->db
             ->select('c.*, 
-        nr.net_rollver_amount, 
-        mi.monthly_investment,
-        m_inc.increase_desc_amount')
+    nr.net_rollver_amount, 
+    mi.monthly_investment,
+    m_inc.increase_desc_amount')
             ->from('tblassar_clients c')
             // Left join for net_rollver (previous month)
             ->join('tblassar_net_rollver nr', 'nr.client_id = c.id AND nr.month = "' . $previousMonth . '"', 'left')
@@ -17799,8 +17963,8 @@ class purchase extends AdminController
             if ($hasRecords > 0) {
                 $existingRecords = $this->db
                     ->select('client_pk_id, 
-                    IFNULL(SUM(client_pl), 0) as cumulative_pl, 
-                    IFNULL(MAX(accumulated_pl), 0) as max_accumulated')
+                IFNULL(SUM(client_pl), 0) as cumulative_pl, 
+                IFNULL(MAX(accumulated_pl), 0) as max_accumulated')
                     ->from('tbl_daily_return_snapshot')
                     ->where('month', $month)
                     ->where('date_to <', $from)
@@ -17864,16 +18028,30 @@ class purchase extends AdminController
             ];
         }
 
-        // 4) Delete same range ONLY inside same month
-        $this->db
-            ->where('month', $month)
-            ->where('date_from', $from)
-            ->where('date_to', $to)
-            ->delete('tbl_daily_return_snapshot');
+        // 4) Delete same range ONLY inside same month (SKIP for March 2026)
+        if (!$isMarch2026) {
+            $this->db
+                ->where('month', $month)
+                ->where('date_from', $from)
+                ->where('date_to', $to)
+                ->delete('tbl_daily_return_snapshot');
+        }
 
-        // 5) Insert snapshot only if we have data
+        // 5) Insert snapshot only if we have data (INSERT only for March 2026 if no entry exists)
         if (!empty($insertData)) {
-            $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
+            // For March 2026, double-check again before inserting (to prevent race conditions)
+            if ($isMarch2026) {
+                $stillNoEntry = $this->db
+                    ->where('month', $month)
+                    ->get('tbl_daily_return_snapshot')
+                    ->num_rows();
+
+                if ($stillNoEntry == 0) {
+                    $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
+                }
+            } else {
+                $this->db->insert_batch('tbl_daily_return_snapshot', $insertData);
+            }
         }
 
         // 6) Fetch snapshot rows for this range + month
