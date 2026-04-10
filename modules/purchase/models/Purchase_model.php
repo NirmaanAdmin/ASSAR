@@ -29162,4 +29162,18 @@ public function get_single_client_chart_images($client_id, $data = [])
         $this->db->where('id', $client_id);
         return $this->db->get(db_prefix().'assar_clients')->row();
     }
+
+    public function get_all_client_ids_new($frequency)
+    {
+        $this->db->select('id');
+        
+        $this->db->from(db_prefix().'assar_clients'); // change table name as per your system
+        $result = $this->db->get()->result_array();
+
+        $ids = [];
+        foreach ($result as $row) {
+            $ids[] = $row['id'];
+        }
+        return $ids;
+    }
 }
