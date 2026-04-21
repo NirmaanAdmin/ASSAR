@@ -29176,4 +29176,19 @@ public function get_single_client_chart_images($client_id, $data = [])
         }
         return $ids;
     }
+
+    public function save_compounding_config()
+    {
+        $module_name = 'compounding_tracker';
+        $data = $this->input->post();
+        update_module_filter($module_name, 'starting_capital', !empty($data['starting_capital']) ? $data['starting_capital'] : 3300);
+        update_module_filter($module_name, 'daily_return', !empty($data['daily_return']) ? $data['daily_return'] : 20);
+        update_module_filter($module_name, 'days_per_cycle', !empty($data['days_per_cycle']) ? $data['days_per_cycle'] : 7);
+        update_module_filter($module_name, 'withdrawal', !empty($data['withdrawal']) ? $data['withdrawal'] : 20);
+        update_module_filter($module_name, 'positions_once', !empty($data['positions_once']) ? $data['positions_once'] : 5);
+        update_module_filter($module_name, 'wallet_usage', !empty($data['wallet_usage']) ? $data['wallet_usage'] : 85);
+        update_module_filter($module_name, 'leverage', !empty($data['leverage']) ? $data['leverage'] : 5);
+        update_module_filter($module_name, 'target', !empty($data['target']) ? $data['target'] : 10000000);
+        return true;
+    }
 }

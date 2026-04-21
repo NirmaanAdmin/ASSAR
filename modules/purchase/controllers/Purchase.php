@@ -18152,4 +18152,24 @@ class purchase extends AdminController
 
         echo json_encode($data);
     }
+
+    public function compounding_tracker()
+    {
+        $this->load->model('currencies_model');
+        $data['title'] = _l('compounding_tracker');
+        $data['base_currency'] = $this->currencies_model->get_base_currency();
+        $this->load->view('compounding_tracker/manage', $data);
+    }
+
+    public function save_compounding_config()
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        $data = $this->purchase_model->save_compounding_config();
+        echo json_encode([
+            'status' => true,
+            'message' => 'Compounding configuration parameters have been saved successfully.',
+        ]);
+    }
 }

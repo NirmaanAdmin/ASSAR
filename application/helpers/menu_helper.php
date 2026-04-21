@@ -45,6 +45,14 @@ function app_init_admin_sidebar_menu_items()
         'badge'    => [],
     ]);
 
+    $CI->app_menu->add_sidebar_menu_item('compounding_tracker', [
+        'name'     => _l('compounding_tracker'),
+        'href'     => admin_url('purchase/compounding_tracker'),
+        'icon'     => 'fa fa-line-chart menu-icon',
+        'position' => 9,
+        'badge'    => [],
+    ]);
+
     $CI->app_menu->add_sidebar_menu_item('cost_planning', [
         'collapse' => true,
         'name'     => _l('cost_planning'),
