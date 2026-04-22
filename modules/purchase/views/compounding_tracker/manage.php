@@ -39,6 +39,40 @@
                      <div role="tabpanel" class="col-md-12 tab-pane active" id="dashboard">
                      </div>
                      <div role="tabpanel" class="col-md-12 tab-pane" id="tracker">
+                        <div class="row">
+                           <div class="col-md-3">
+                              <?php
+                              $default_end_date = date('d-m-Y', strtotime('+2 months'));
+                              $end_date_filter = get_module_filter($module_name, 'end_date');
+                              $end_date_filter_val = !empty($end_date_filter) ?  $end_date_filter->filter_value : $default_end_date;
+                              echo render_date_input('end_date', _l('End date'), $end_date_filter_val); 
+                              ?>
+                           </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-md-12">
+                              <table class="table dt-table tracker_table border">
+                                 <thead>
+                                    <tr>
+                                       <th><?php echo _l('Day'); ?></th>
+                                       <th><?php echo _l('Date'); ?></th>
+                                       <th><?php echo _l('Plan Opening'); ?></th>
+                                       <th><?php echo _l('Plan Closing'); ?></th>
+                                       <th><?php echo _l('Actual Opening'); ?></th>
+                                       <th><?php echo _l('Actual P&L'); ?></th>
+                                       <th><?php echo _l('Actual Closing'); ?></th>
+                                       <th><?php echo _l('vs Plan %'); ?></th>
+                                       <th><?php echo _l('FIXED_MARGIN_INR'); ?></th>
+                                       <th><?php echo _l('W/D Target'); ?></th>
+                                       <th><?php echo _l('W/D Amount'); ?></th>
+                                       <th><?php echo _l('Notes'); ?></th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
                      </div>
                      <div role="tabpanel" class="col-md-12 tab-pane" id="config">
                         <table class="table table-bordered table-striped config_table">
@@ -55,7 +89,7 @@
                                  <td>
                                     <?php
                                     $starting_capital_filter = get_module_filter($module_name, 'starting_capital');
-                                    $starting_capital_filter_val = !empty($starting_capital_filter) ?  $starting_capital_filter->filter_value : 3300;
+                                    $starting_capital_filter_val = !empty($starting_capital_filter) ?  $starting_capital_filter->filter_value : 2500;
                                     echo render_input('starting_capital', '', $starting_capital_filter_val, 'number');
                                     ?>
                                  </td>
@@ -159,8 +193,43 @@
    $(document).ready(function() {
       "use strict";
       calculate_day_target();
+      load_compounding_tracker_data();
       $("body").on('change', '.config_table input', function() {
          save_compounding_config();
+      });
+      $("body").on('change', '#tracker input[name="end_date"]', function() {
+         load_compounding_tracker_data();
+      });
+      $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+         load_compounding_tracker_data();
+      });
+      $("body").on('change', '#actual_closing_input', function() {
+          var actual_closing = $(this).val();
+          var compounding_date = $(this).data('compounding_date');
+          $.post(admin_url + 'purchase/save_compounding_actual_closing', {
+            actual_closing: actual_closing,
+            compounding_date: compounding_date
+          }, function(response){
+            var data = JSON.parse(response);
+            if(data.status) {
+               alert_float('success', data.message);
+               load_compounding_tracker_data();
+            }
+          });
+      });
+      $("body").on('change', '#notes_input', function() {
+          var notes = $(this).val();
+          var compounding_date = $(this).data('compounding_date');
+          $.post(admin_url + 'purchase/save_compounding_notes', {
+            notes: notes,
+            compounding_date: compounding_date
+          }, function(response){
+            var data = JSON.parse(response);
+            if(data.status) {
+               alert_float('success', data.message);
+               load_compounding_tracker_data();
+            }
+          });
       });
    });
 
@@ -197,6 +266,35 @@
                alert_float('success', data.message);
                calculate_day_target();
             }
+      });
+   }
+
+   function load_compounding_tracker_data() {
+      var end_date = $('#tracker input[name="end_date"]').val();
+      $.post(admin_url + 'purchase/get_compounding_tracker_data', {
+         end_date: end_date
+        }, function(response){
+            var data = JSON.parse(response);
+            var tracker_tbody = '';
+            if (Array.isArray(data.compounding_tracker) && data.compounding_tracker.length > 0) {
+               $.each(data.compounding_tracker, function(i, row){
+                  tracker_tbody += '<tr>';
+                  tracker_tbody += '<td>'+row.day+'</td>';
+                  tracker_tbody += '<td>'+row.date+'</td>';
+                  tracker_tbody += '<td>'+format_money(row.plan_opening)+'</td>';
+                  tracker_tbody += '<td>'+format_money(row.plan_closing)+'</td>';
+                  tracker_tbody += '<td>'+format_money(row.actual_opening)+'</td>';
+                  tracker_tbody += '<td>'+format_money(row.actual_pnl)+'</td>';
+                  tracker_tbody += '<td>'+row.actual_closing_html+'</td>';
+                  tracker_tbody += '<td>'+row.vs_plan+'%</td>';
+                  tracker_tbody += '<td>'+format_money(row.fixed_margin)+'</td>';
+                  tracker_tbody += '<td>'+format_money(row.wd_target)+'</td>';
+                  tracker_tbody += '<td>'+format_money(row.wd_amount)+'</td>';
+                  tracker_tbody += '<td>'+row.notes_html+'</td>';
+                  tracker_tbody += '</tr>';
+               });
+            }
+            $('.tracker_table tbody').html(tracker_tbody);
       });
    }
 </script>

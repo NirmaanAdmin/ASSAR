@@ -29191,4 +29191,116 @@ public function get_single_client_chart_images($client_id, $data = [])
         update_module_filter($module_name, 'target', !empty($data['target']) ? $data['target'] : 10000000);
         return true;
     }
+
+    public function get_compounding_tracker_data()
+    {
+        $module_name = 'compounding_tracker';
+        $data = $this->input->post();
+        $end_date_input = !empty($data['end_date']) ? $data['end_date'] : date('d-m-Y', strtotime('+2 months'));
+        update_module_filter($module_name, 'end_date', $end_date_input);
+        $today_date = date('Y-m-d');
+        $end_date   = date('Y-m-d', strtotime($end_date_input));
+        $all_dates = [];
+        $current = strtotime($today_date);
+        $end = strtotime($end_date);
+        while ($current <= $end) {
+            $all_dates[] = date('Y-m-d', $current);
+            $current = strtotime('+1 day', $current);
+        }
+
+        $starting_capital_val = get_module_filter($module_name, 'starting_capital')->filter_value ?? 2500;
+        $daily_return_val = get_module_filter($module_name, 'daily_return')->filter_value ?? 20;
+        $days_per_cycle_val = (int)(get_module_filter($module_name, 'days_per_cycle')->filter_value ?? 7);
+        $withdrawal_val = get_module_filter($module_name, 'withdrawal')->filter_value ?? 20;
+        $positions_once_val = get_module_filter($module_name, 'positions_once')->filter_value ?? 5;
+        $wallet_usage_val = get_module_filter($module_name, 'wallet_usage')->filter_value ?? 85;
+        $tracker_data = $this->db->get(db_prefix().'compounding_tracker')->result_array();
+        $tracker_map = [];
+        foreach ($tracker_data as $row) {
+            $tracker_map[$row['compounding_date']] = $row;
+        }
+        $compounding_tracker = [];
+        $previous_plan_closing   = 0;
+        $previous_actual_closing = 0;
+
+        foreach ($all_dates as $index => $compounding_date) {
+            $day = $index + 1;
+            $plan_opening = ($index == 0) ? $starting_capital_val : $previous_plan_closing;
+            $plan_closing = $plan_opening + ($plan_opening * ($daily_return_val / 100));
+            $row = $tracker_map[$compounding_date] ?? [];
+            $actual_closing = isset($row['actual_closing']) ? floatval($row['actual_closing']) : 0;
+            $notes = $row['notes'] ?? '';
+
+            $actual_closing_html = "
+            <input type='number'
+                name='actual_closing[{$index}]'
+                value='{$actual_closing}'
+                id='actual_closing_input'
+                class='form-control'
+                data-compounding_date='{$compounding_date}'
+            >";
+            $notes_html = "
+            <textarea
+                name='notes[{$index}]'
+                id='notes_input'
+                class='form-control'
+                data-compounding_date='{$compounding_date}'
+            >{$notes}</textarea>";
+
+            $compounding_tracker[] = [
+                'day' => $day,
+                'date' => date('d-M-Y', strtotime($compounding_date)),
+                'plan_opening' => round($plan_opening),
+                'plan_closing' => round($plan_closing),
+                'actual_opening' => round($actual_opening),
+                'actual_pnl' => round($actual_pnl),
+                'vs_plan' => round($vs_plan, 2),
+                'fixed_margin' => round($fixed_margin),
+                'wd_target' => round($wd_target),
+                'wd_amount' => round($wd_amount),
+                'actual_closing_html' => $actual_closing_html,
+                'notes_html' => $notes_html,
+            ];
+            $previous_plan_closing   = $plan_closing;
+            $previous_actual_closing = $actual_closing;
+        }
+
+        return [
+            'compounding_tracker' => $compounding_tracker,
+        ];
+    }
+
+    public function save_compounding_actual_closing()
+    {
+        $data = $this->input->post();
+        $compounding_date = !empty($data['compounding_date']) ? $data['compounding_date'] : NULL;
+        $actual_closing = !empty($data['actual_closing']) ? $data['actual_closing'] : NULL;
+        $this->db->where('compounding_date', $compounding_date);
+        $compounding_tracker = $this->db->get(db_prefix().'compounding_tracker')->row();
+        if(!empty($compounding_tracker)) {
+            $this->db->where('compounding_date', $compounding_date);
+            $this->db->update(db_prefix() . 'compounding_tracker', ['actual_closing' => $actual_closing]);
+        } else {
+            $this->db->insert(db_prefix() . 'compounding_tracker', ['compounding_date' => $compounding_date, 'actual_closing' => $actual_closing]);
+        }
+
+        return true;
+    }
+
+    public function save_compounding_notes()
+    {
+        $data = $this->input->post();
+        $compounding_date = !empty($data['compounding_date']) ? $data['compounding_date'] : NULL;
+        $notes = !empty($data['notes']) ? $data['notes'] : NULL;
+        $this->db->where('compounding_date', $compounding_date);
+        $compounding_tracker = $this->db->get(db_prefix().'compounding_tracker')->row();
+        if(!empty($compounding_tracker)) {
+            $this->db->where('compounding_date', $compounding_date);
+            $this->db->update(db_prefix() . 'compounding_tracker', ['notes' => $notes]);
+        } else {
+            $this->db->insert(db_prefix() . 'compounding_tracker', ['compounding_date' => $compounding_date, 'notes' => $notes]);
+        }
+
+        return true;
+    }
 }

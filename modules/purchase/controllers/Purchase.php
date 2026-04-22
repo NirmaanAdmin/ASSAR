@@ -18172,4 +18172,37 @@ class purchase extends AdminController
             'message' => 'Compounding configuration parameters have been saved successfully.',
         ]);
     }
+
+    public function get_compounding_tracker_data()
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        $data = $this->purchase_model->get_compounding_tracker_data();
+        echo json_encode($data);
+    }
+
+    public function save_compounding_actual_closing()
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        $data = $this->purchase_model->save_compounding_actual_closing();
+        echo json_encode([
+            'status' => true,
+            'message' => 'Your changes have been saved successfully.',
+        ]);
+    }
+
+    public function save_compounding_notes()
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        $data = $this->purchase_model->save_compounding_notes();
+        echo json_encode([
+            'status' => true,
+            'message' => 'Your changes have been saved successfully.',
+        ]);
+    }
 }
