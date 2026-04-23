@@ -29198,7 +29198,7 @@ public function get_single_client_chart_images($client_id, $data = [])
         $data = $this->input->post();
         $end_date_input = !empty($data['end_date']) ? $data['end_date'] : date('d-m-Y', strtotime('+2 months'));
         update_module_filter($module_name, 'end_date', $end_date_input);
-        $today_date = date('Y-m-d');
+        $today_date = '2026-04-22';
         $end_date   = date('Y-m-d', strtotime($end_date_input));
         $all_dates = [];
         $current = strtotime($today_date);
@@ -29219,30 +29219,50 @@ public function get_single_client_chart_images($client_id, $data = [])
         foreach ($tracker_data as $row) {
             $tracker_map[$row['compounding_date']] = $row;
         }
+
         $compounding_tracker = [];
-        $previous_plan_closing   = 0;
-        $previous_actual_closing = 0;
+        $previous_plan_closing = 0;
+        $previous_day_in_cycle = 1;
+        $previous_wd_amount = 0;
+        $withdrawal_count = 0;
+        $previous_actual_closing = null;
+        $previous_wd_target = 0;
 
         foreach ($all_dates as $index => $compounding_date) {
             $day = $index + 1;
             $plan_opening = ($index == 0) ? $starting_capital_val : $previous_plan_closing;
             $plan_closing = $plan_opening + ($plan_opening * ($daily_return_val / 100));
             $row = $tracker_map[$compounding_date] ?? [];
-            $actual_closing = isset($row['actual_closing']) ? floatval($row['actual_closing']) : 0;
+            $actual_closing = isset($row['actual_closing']) ? floatval($row['actual_closing']) : null;
             $notes = $row['notes'] ?? '';
-
+            if ($index == 0) {
+                $wd_target = $starting_capital_val * pow(1 + ($daily_return_val / 100), $days_per_cycle_val);
+            } else {
+                $wd_target = ($previous_wd_amount > 0)
+                    ? ($previous_actual_closing - $previous_wd_amount) * pow((1 + ($daily_return_val / 100)), $days_per_cycle_val)
+                    : $previous_wd_target;
+            }
+            $day_in_cycle = ($index == 0) ? 1 : ($previous_wd_amount > 0 ? 1 : $previous_day_in_cycle + 1);
+            $wd_amount = ($day_in_cycle >= $days_per_cycle_val && $actual_closing !== null && $actual_closing >= $wd_target
+            ) ? $actual_closing * ($withdrawal_val / 100) : 0;
+            $cycle = 1 + $withdrawal_count;
+            if ($wd_amount > 0) {
+                $withdrawal_count++;
+            }
+            $actual_opening = ($index == 0) ? $starting_capital_val : (($previous_actual_closing === null) ? 0 : $previous_actual_closing - $previous_wd_amount);
+            $actual_pnl = ($actual_closing === null) ? 0 : $actual_closing - $actual_opening;
+            $vs_plan = ($plan_closing == 0 || $actual_closing === null) ? 0 : ((($actual_closing - $plan_closing) / $plan_closing) * 100);
+            $fixed_margin = ($positions_once_val == 0) ? 0 : ($actual_opening / $positions_once_val) * ($wallet_usage_val / 100);
             $actual_closing_html = "
             <input type='number'
                 name='actual_closing[{$index}]'
-                value='{$actual_closing}'
-                id='actual_closing_input'
+                value='" . ($actual_closing ?? '') . "'
                 class='form-control'
                 data-compounding_date='{$compounding_date}'
             >";
             $notes_html = "
             <textarea
                 name='notes[{$index}]'
-                id='notes_input'
                 class='form-control'
                 data-compounding_date='{$compounding_date}'
             >{$notes}</textarea>";
@@ -29250,19 +29270,25 @@ public function get_single_client_chart_images($client_id, $data = [])
             $compounding_tracker[] = [
                 'day' => $day,
                 'date' => date('d-M-Y', strtotime($compounding_date)),
+                'cycle' => $cycle,
+                'day_in_cycle' => $day_in_cycle,
                 'plan_opening' => round($plan_opening),
                 'plan_closing' => round($plan_closing),
+                'wd_target' => round($wd_target),
+                'wd_amount' => round($wd_amount),
                 'actual_opening' => round($actual_opening),
                 'actual_pnl' => round($actual_pnl),
                 'vs_plan' => round($vs_plan, 2),
                 'fixed_margin' => round($fixed_margin),
-                'wd_target' => round($wd_target),
-                'wd_amount' => round($wd_amount),
                 'actual_closing_html' => $actual_closing_html,
                 'notes_html' => $notes_html,
             ];
-            $previous_plan_closing   = $plan_closing;
+
+            $previous_plan_closing = $plan_closing;
+            $previous_day_in_cycle = $day_in_cycle;
+            $previous_wd_amount = $wd_amount;
             $previous_actual_closing = $actual_closing;
+            $previous_wd_target = $wd_target;
         }
 
         return [

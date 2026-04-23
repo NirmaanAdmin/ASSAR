@@ -56,6 +56,8 @@
                                     <tr>
                                        <th><?php echo _l('Day'); ?></th>
                                        <th><?php echo _l('Date'); ?></th>
+                                       <th><?php echo _l('Cycle'); ?></th>
+                                       <th><?php echo _l('Day in Cycle'); ?></th>
                                        <th><?php echo _l('Plan Opening'); ?></th>
                                        <th><?php echo _l('Plan Closing'); ?></th>
                                        <th><?php echo _l('Actual Opening'); ?></th>
@@ -281,6 +283,8 @@
                   tracker_tbody += '<tr>';
                   tracker_tbody += '<td>'+row.day+'</td>';
                   tracker_tbody += '<td>'+row.date+'</td>';
+                  tracker_tbody += '<td>'+row.cycle+'</td>';
+                  tracker_tbody += '<td>'+row.day_in_cycle+'</td>';
                   tracker_tbody += '<td>'+format_money(row.plan_opening)+'</td>';
                   tracker_tbody += '<td>'+format_money(row.plan_closing)+'</td>';
                   tracker_tbody += '<td>'+format_money(row.actual_opening)+'</td>';
