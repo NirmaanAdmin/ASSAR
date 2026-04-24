@@ -29196,10 +29196,8 @@ public function get_single_client_chart_images($client_id, $data = [])
     {
         $module_name = 'compounding_tracker';
         $data = $this->input->post();
-        $end_date_input = !empty($data['end_date']) ? $data['end_date'] : date('d-m-Y', strtotime('+2 months'));
-        update_module_filter($module_name, 'end_date', $end_date_input);
         $today_date = '2026-04-22';
-        $end_date   = date('Y-m-d', strtotime($end_date_input));
+        $end_date   = date('Y-m-d', strtotime('+2 months'));
         $all_dates = [];
         $current = strtotime($today_date);
         $end = strtotime($end_date);
@@ -29251,7 +29249,7 @@ public function get_single_client_chart_images($client_id, $data = [])
             }
             $actual_opening = ($index == 0) ? $starting_capital_val : (($previous_actual_closing === null) ? 0 : $previous_actual_closing - $previous_wd_amount);
             $actual_pnl = ($actual_closing === null) ? 0 : $actual_closing - $actual_opening;
-            $vs_plan = ($plan_closing == 0 || $actual_closing === null) ? 0 : ((($actual_closing - $plan_closing) / $plan_closing) * 100);
+            $vs_plan = ($plan_closing == 0) ? 0 : ((($actual_closing - $plan_closing) / $plan_closing) * 100);
             $fixed_margin = ($positions_once_val == 0) ? 0 : ($actual_opening / $positions_once_val) * ($wallet_usage_val / 100);
             $actual_closing_html = "
             <input type='number'

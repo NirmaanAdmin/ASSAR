@@ -40,16 +40,6 @@
                      </div>
                      <div role="tabpanel" class="col-md-12 tab-pane" id="tracker">
                         <div class="row">
-                           <div class="col-md-3">
-                              <?php
-                              $default_end_date = date('d-m-Y', strtotime('+2 months'));
-                              $end_date_filter = get_module_filter($module_name, 'end_date');
-                              $end_date_filter_val = !empty($end_date_filter) ?  $end_date_filter->filter_value : $default_end_date;
-                              echo render_date_input('end_date', _l('End date'), $end_date_filter_val); 
-                              ?>
-                           </div>
-                        </div>
-                        <div class="row">
                            <div class="col-md-12">
                               <table class="table dt-table tracker_table border">
                                  <thead>
@@ -199,9 +189,6 @@
       $("body").on('change', '.config_table input', function() {
          save_compounding_config();
       });
-      $("body").on('change', '#tracker input[name="end_date"]', function() {
-         load_compounding_tracker_data();
-      });
       $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
          load_compounding_tracker_data();
       });
@@ -272,9 +259,7 @@
    }
 
    function load_compounding_tracker_data() {
-      var end_date = $('#tracker input[name="end_date"]').val();
       $.post(admin_url + 'purchase/get_compounding_tracker_data', {
-         end_date: end_date
         }, function(response){
             var data = JSON.parse(response);
             var tracker_tbody = '';
