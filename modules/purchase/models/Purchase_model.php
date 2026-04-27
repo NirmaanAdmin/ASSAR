@@ -29212,6 +29212,8 @@ public function get_single_client_chart_images($client_id, $data = [])
         $withdrawal_val = get_module_filter($module_name, 'withdrawal')->filter_value ?? 20;
         $positions_once_val = get_module_filter($module_name, 'positions_once')->filter_value ?? 5;
         $wallet_usage_val = get_module_filter($module_name, 'wallet_usage')->filter_value ?? 85;
+        $leverage_val = get_module_filter($module_name, 'leverage')->filter_value ?? 5;
+        $target_val = get_module_filter($module_name, 'target')->filter_value ?? 10000000;
         $tracker_data = $this->db->get(db_prefix().'compounding_tracker')->result_array();
         $tracker_map = [];
         foreach ($tracker_data as $row) {
@@ -29225,6 +29227,7 @@ public function get_single_client_chart_images($client_id, $data = [])
         $withdrawal_count = 0;
         $previous_actual_closing = null;
         $previous_wd_target = 0;
+        $cumulative_pnl += $actual_pnl;
 
         foreach ($all_dates as $index => $compounding_date) {
             $day = $index + 1;
@@ -29251,9 +29254,14 @@ public function get_single_client_chart_images($client_id, $data = [])
             $actual_pnl = ($actual_closing === null) ? 0 : $actual_closing - $actual_opening;
             $vs_plan = ($plan_closing == 0) ? 0 : ((($actual_closing - $plan_closing) / $plan_closing) * 100);
             $fixed_margin = ($positions_once_val == 0) ? 0 : ($actual_opening / $positions_once_val) * ($wallet_usage_val / 100);
+            $daily_return_percent = ($actual_closing === null || $actual_closing === '') ? 0 : ($actual_opening == 0 ? 0 : (($actual_pnl / $actual_opening) * 100));
+            $cumulative_pnl += $actual_pnl;
+            $cum_return_percent = ($starting_capital_val == 0) ? 0 : (($cumulative_pnl / $starting_capital_val) * 100);
+
             $actual_closing_html = "
             <input type='number'
                 name='actual_closing[{$index}]'
+                id='actual_closing_input'
                 value='" . ($actual_closing ?? '') . "'
                 class='form-control'
                 data-compounding_date='{$compounding_date}'
@@ -29261,6 +29269,7 @@ public function get_single_client_chart_images($client_id, $data = [])
             $notes_html = "
             <textarea
                 name='notes[{$index}]'
+                id='notes_input'
                 class='form-control'
                 data-compounding_date='{$compounding_date}'
             >{$notes}</textarea>";
@@ -29278,6 +29287,10 @@ public function get_single_client_chart_images($client_id, $data = [])
                 'actual_pnl' => round($actual_pnl),
                 'vs_plan' => round($vs_plan, 2),
                 'fixed_margin' => round($fixed_margin),
+                'daily_return_percent' => round($daily_return_percent, 2),
+                'cumulative_pnl' => round($cumulative_pnl),
+                'cum_return_percent' => round($cum_return_percent, 2),
+                'actual_closing' => $actual_closing,
                 'actual_closing_html' => $actual_closing_html,
                 'notes_html' => $notes_html,
             ];
@@ -29289,8 +29302,34 @@ public function get_single_client_chart_images($client_id, $data = [])
             $previous_wd_target = $wd_target;
         }
 
+        $non_empty_actual_closing_list = array_values(array_filter(
+            $compounding_tracker,
+            fn($row) => $row['actual_closing'] !== null && $row['actual_closing'] !== ''
+        ));
+        $current_balance_dashboard = end($non_empty_actual_closing_list)['actual_closing'] ?? 0;
+        $days_elapsed_dashboard = count($non_empty_actual_closing_list);
+        $current_cycle_dashboard = end($compounding_tracker)['cycle'] ?? 0;
+        $total_withdrawn_dashboard = array_sum(array_column($compounding_tracker, 'wd_amount'));
+        $plan_balance_dashboard = end($non_empty_actual_closing_list)['plan_closing'] ?? 0;
+        $vs_plan_dashboard = end($non_empty_actual_closing_list)['vs_plan'] ?? -100;
+        $target_dashboard = $target_val;
+        $distance_target_dashboard = $target_val - $current_balance_dashboard;
+        $railway_tomorrow_morning_dashboard = end(array_values(array_filter(
+            array_column($compounding_tracker, 'fixed_margin'),
+            fn($v) => $v != 0
+        ))) ?: (end($compounding_tracker)['fixed_margin'] ?? 0);
+
         return [
             'compounding_tracker' => $compounding_tracker,
+            'current_balance_dashboard' => round($current_balance_dashboard),
+            'days_elapsed_dashboard' => $days_elapsed_dashboard,
+            'current_cycle_dashboard' => $current_cycle_dashboard,
+            'total_withdrawn_dashboard' => round($total_withdrawn_dashboard),
+            'plan_balance_dashboard' => round($plan_balance_dashboard),
+            'vs_plan_dashboard' => round($vs_plan_dashboard, 2),
+            'target_dashboard' => round($target_dashboard),
+            'distance_target_dashboard' => round($distance_target_dashboard),
+            'railway_tomorrow_morning_dashboard' => round($railway_tomorrow_morning_dashboard),
         ];
     }
 
