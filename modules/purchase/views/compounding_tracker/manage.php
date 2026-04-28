@@ -339,6 +339,30 @@
                               </div>
                            </div>
                         </div>
+                        <hr class="mtop10">
+                        <div class="row">
+                          <div class="col-md-12">
+                            <p class="no-margin main_head_title">CYCLE SUMMARY</p>
+                          </div>
+                        </div>
+                        <div class="row">
+                           <div class="col-md-12 mtop20">
+                              <table class="table dt-table cycle_summary_table border">
+                                 <thead>
+                                    <tr>
+                                       <th><?php echo _l('Cycle'); ?></th>
+                                       <th><?php echo _l('Start Day'); ?></th>
+                                       <th><?php echo _l('End Day'); ?></th>
+                                       <th><?php echo _l('Start Bal'); ?></th>
+                                       <th><?php echo _l('End Bal'); ?></th>
+                                       <th><?php echo _l('W/D'); ?></th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
                      </div>
                      <div role="tabpanel" class="col-md-12 tab-pane" id="tracker">
                         <div class="row">
@@ -608,6 +632,21 @@
             $('.yesterday_return_dashboard').html(data.yesterday_return_dashboard+'%');
             $('.total_profit_dashboard').html(format_money(data.total_profit_dashboard));
             $('.overall_return_dashboard').html(data.overall_return_dashboard+'%');
+
+            var cycle_summary_tbody = '';
+            if (Array.isArray(data.cycle_summary) && data.cycle_summary.length > 0) {
+               $.each(data.cycle_summary, function(i, row){
+                  cycle_summary_tbody += '<tr>';
+                  cycle_summary_tbody += '<td>'+row.cycle+'</td>';
+                  cycle_summary_tbody += '<td>'+row.start_day+'</td>';
+                  cycle_summary_tbody += '<td>'+row.end_day+'</td>';
+                  cycle_summary_tbody += '<td>'+format_money(row.start_bal)+'</td>';
+                  cycle_summary_tbody += '<td>'+format_money(row.end_bal)+'</td>';
+                  cycle_summary_tbody += '<td>'+format_money(row.cycle_wd_amount)+'</td>';
+                  cycle_summary_tbody += '</tr>';
+               });
+            }
+            $('.cycle_summary_table tbody').html(cycle_summary_tbody);
       });
    }
 </script>
