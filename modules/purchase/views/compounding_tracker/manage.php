@@ -602,6 +602,12 @@
             $('.target_dashboard').html(format_money(data.target_dashboard));
             $('.distance_target_dashboard').html(format_money(data.distance_target_dashboard));
             $('.railway_tomorrow_morning_dashboard').html(format_money(data.railway_tomorrow_morning_dashboard));
+            $('.today_pnl_dashboard').html(format_money(data.today_pnl_dashboard));
+            $('.today_return_dashboard').html(data.today_return_dashboard+'%');
+            $('.yesterday_pnl_dashboard').html(format_money(data.yesterday_pnl_dashboard));
+            $('.yesterday_return_dashboard').html(data.yesterday_return_dashboard+'%');
+            $('.total_profit_dashboard').html(format_money(data.total_profit_dashboard));
+            $('.overall_return_dashboard').html(data.overall_return_dashboard+'%');
       });
    }
 </script>

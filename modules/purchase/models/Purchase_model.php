@@ -29310,14 +29310,50 @@ public function get_single_client_chart_images($client_id, $data = [])
         $days_elapsed_dashboard = count($non_empty_actual_closing_list);
         $current_cycle_dashboard = end($compounding_tracker)['cycle'] ?? 0;
         $total_withdrawn_dashboard = array_sum(array_column($compounding_tracker, 'wd_amount'));
-        $plan_balance_dashboard = end($non_empty_actual_closing_list)['plan_closing'] ?? 0;
+        $plan_balance_dashboard = (count($non_empty_actual_closing_list) == 0) ? $starting_capital_val : (end($non_empty_actual_closing_list)['plan_closing'] ?? 0);
         $vs_plan_dashboard = end($non_empty_actual_closing_list)['vs_plan'] ?? -100;
         $target_dashboard = $target_val;
         $distance_target_dashboard = $target_val - $current_balance_dashboard;
-        $railway_tomorrow_morning_dashboard = end(array_values(array_filter(
-            array_column($compounding_tracker, 'fixed_margin'),
+        $railway_tomorrow_morning_dashboard = (count($non_empty_actual_closing_list) == 0)
+        ? 0
+        : (
+            end(array_values(array_filter(
+                array_column($compounding_tracker, 'fixed_margin'),
+                fn($v) => $v != 0
+            ))) ?: (end($compounding_tracker)['fixed_margin'] ?? 0)
+        );
+        $today_pnl_dashboard = end(array_values(array_filter(
+            array_column($compounding_tracker, 'actual_pnl'),
             fn($v) => $v != 0
-        ))) ?: (end($compounding_tracker)['fixed_margin'] ?? 0);
+        ))) ?: (end($compounding_tracker)['actual_pnl'] ?? 0);
+        $today_return_dashboard = end(array_values(array_filter(
+            array_column($compounding_tracker, 'daily_return_percent'),
+            fn($v) => $v != 0
+        ))) ?: (end($compounding_tracker)['daily_return_percent'] ?? 0);
+        $yesterday_pnl_dashboard = (count($non_empty_actual_closing_list) > 1)
+        ? (
+            (array_values(array_filter(
+                array_column($compounding_tracker, 'actual_pnl'),
+                fn($v) => $v != 0
+            ))[count(array_values(array_filter(
+                array_column($compounding_tracker, 'actual_pnl'),
+                fn($v) => $v != 0
+            ))) - 2] ?? 0)
+        )
+        : 0;
+        $yesterday_return_dashboard = (count($non_empty_actual_closing_list) > 1)
+        ? (
+            (array_values(array_filter(
+                array_column($compounding_tracker, 'daily_return_percent'),
+                fn($v) => $v != 0
+            ))[count(array_values(array_filter(
+                array_column($compounding_tracker, 'daily_return_percent'),
+                fn($v) => $v != 0
+            ))) - 2] ?? 0)
+        )
+        : 0;
+        $total_profit_dashboard = end($compounding_tracker)['cumulative_pnl'] ?? 0;
+        $overall_return_dashboard = end($compounding_tracker)['cum_return_percent'] ?? 0;
 
         return [
             'compounding_tracker' => $compounding_tracker,
@@ -29330,6 +29366,12 @@ public function get_single_client_chart_images($client_id, $data = [])
             'target_dashboard' => round($target_dashboard),
             'distance_target_dashboard' => round($distance_target_dashboard),
             'railway_tomorrow_morning_dashboard' => round($railway_tomorrow_morning_dashboard),
+            'today_pnl_dashboard' => round($today_pnl_dashboard),
+            'today_return_dashboard' => round($today_return_dashboard, 2),
+            'yesterday_pnl_dashboard' => round($yesterday_pnl_dashboard),
+            'yesterday_return_dashboard' => round($yesterday_return_dashboard, 2),
+            'total_profit_dashboard' => round($total_profit_dashboard),
+            'overall_return_dashboard' => round($overall_return_dashboard, 2),
         ];
     }
 
