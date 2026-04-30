@@ -29181,87 +29181,97 @@ public function get_single_client_chart_images($client_id, $data = [])
     {
         $module_name = 'compounding_tracker';
         $data = $this->input->post();
-        $today_date = '2026-04-22';
-        $end_date   = date('Y-m-d', strtotime('+2 months'));
-        $all_dates = [];
-        $current = strtotime($today_date);
-        $end = strtotime($end_date);
-        while ($current <= $end) {
-            $all_dates[] = date('Y-m-d', $current);
-            $current = strtotime('+1 day', $current);
-        }
-
+        $phase = $data['phase'] ?? 1;
         $starting_capital_val = get_module_filter($module_name, 'starting_capital')->filter_value ?? 2500;
         $daily_return_val = get_module_filter($module_name, 'daily_return')->filter_value ?? 20;
         $days_per_cycle_val = (int)(get_module_filter($module_name, 'days_per_cycle')->filter_value ?? 7);
         $withdrawal_val = get_module_filter($module_name, 'withdrawal')->filter_value ?? 20;
         $positions_once_val = get_module_filter($module_name, 'positions_once')->filter_value ?? 5;
         $wallet_usage_val = get_module_filter($module_name, 'wallet_usage')->filter_value ?? 85;
-        $leverage_val = get_module_filter($module_name, 'leverage')->filter_value ?? 5;
         $target_val = get_module_filter($module_name, 'target')->filter_value ?? 10000000;
+        $this->db->where('phase', $phase);
         $tracker_data = $this->db->get(db_prefix().'compounding_tracker')->result_array();
         $tracker_map = [];
         foreach ($tracker_data as $row) {
-            $tracker_map[$row['compounding_date']] = $row;
+            $tracker_map[$row['day']] = $row;
         }
 
         $compounding_tracker = [];
         $previous_plan_closing = 0;
         $previous_day_in_cycle = 1;
         $previous_wd_amount = 0;
-        $withdrawal_count = 0;
         $previous_actual_closing = null;
         $previous_wd_target = 0;
-        $cumulative_pnl += $actual_pnl;
+        $withdrawal_count = 0;
+        $cumulative_pnl = 0;
+        $day = 1;
 
-        foreach ($all_dates as $index => $compounding_date) {
-            $day = $index + 1;
-            $plan_opening = ($index == 0) ? $starting_capital_val : $previous_plan_closing;
+        while (true) {
+            $plan_opening = ($day == 1) ? $starting_capital_val : $previous_plan_closing;
             $plan_closing = $plan_opening + ($plan_opening * ($daily_return_val / 100));
-            $row = $tracker_map[$compounding_date] ?? [];
+            if ($plan_closing >= $target_val) {
+                break;
+            }
+            $row = $tracker_map[$day] ?? [];
             $actual_closing = isset($row['actual_closing']) ? floatval($row['actual_closing']) : null;
             $notes = $row['notes'] ?? '';
-            if ($index == 0) {
+            if ($day == 1) {
                 $wd_target = $starting_capital_val * pow(1 + ($daily_return_val / 100), $days_per_cycle_val);
             } else {
                 $wd_target = ($previous_wd_amount > 0)
                     ? ($previous_actual_closing - $previous_wd_amount) * pow((1 + ($daily_return_val / 100)), $days_per_cycle_val)
                     : $previous_wd_target;
             }
-            $day_in_cycle = ($index == 0) ? 1 : ($previous_wd_amount > 0 ? 1 : $previous_day_in_cycle + 1);
-            $wd_amount = ($day_in_cycle >= $days_per_cycle_val && $actual_closing !== null && $actual_closing >= $wd_target
+            $day_in_cycle = ($day == 1)
+                ? 1
+                : ($previous_wd_amount > 0 ? 1 : $previous_day_in_cycle + 1);
+            $wd_amount = (
+                $day_in_cycle >= $days_per_cycle_val &&
+                $actual_closing !== null &&
+                $actual_closing >= $wd_target
             ) ? $actual_closing * ($withdrawal_val / 100) : 0;
             $cycle = 1 + $withdrawal_count;
             if ($wd_amount > 0) {
                 $withdrawal_count++;
             }
-            $actual_opening = ($index == 0) ? $starting_capital_val : (($previous_actual_closing === null) ? 0 : $previous_actual_closing - $previous_wd_amount);
-            $actual_pnl = ($actual_closing === null) ? 0 : $actual_closing - $actual_opening;
-            $vs_plan = ($plan_closing == 0) ? 0 : ((($actual_closing - $plan_closing) / $plan_closing) * 100);
-            $fixed_margin = ($positions_once_val == 0) ? 0 : ($actual_opening / $positions_once_val) * ($wallet_usage_val / 100);
-            $daily_return_percent = ($actual_closing === null || $actual_closing === '') ? 0 : ($actual_opening == 0 ? 0 : (($actual_pnl / $actual_opening) * 100));
+            $actual_opening = ($day == 1)
+                ? $starting_capital_val
+                : (($previous_actual_closing === null) ? 0 : $previous_actual_closing - $previous_wd_amount);
+            $actual_pnl = ($actual_closing === null)
+                ? 0
+                : $actual_closing - $actual_opening;
+            $vs_plan = ($plan_closing == 0)
+                ? 0
+                : ((($actual_closing - $plan_closing) / $plan_closing) * 100);
+            $fixed_margin = ($positions_once_val == 0)
+                ? 0
+                : ($actual_opening / $positions_once_val) * ($wallet_usage_val / 100);
+            $daily_return_percent = ($actual_closing === null)
+                ? 0
+                : ($actual_opening == 0 ? 0 : (($actual_pnl / $actual_opening) * 100));
             $cumulative_pnl += $actual_pnl;
-            $cum_return_percent = ($starting_capital_val == 0) ? 0 : (($cumulative_pnl / $starting_capital_val) * 100);
+            $cum_return_percent = ($starting_capital_val == 0)
+                ? 0
+                : (($cumulative_pnl / $starting_capital_val) * 100);
 
             $actual_closing_html = "
             <input type='number'
-                name='actual_closing[{$index}]'
-                id='actual_closing_input'
+                name='actual_closing[{$day}]'
+                class='form-control actual_closing_input'
                 value='" . ($actual_closing ?? '') . "'
-                class='form-control'
-                data-compounding_date='{$compounding_date}'
+                data-phase='{$phase}'
+                data-day='{$day}'
             >";
             $notes_html = "
             <textarea
-                name='notes[{$index}]'
-                id='notes_input'
-                class='form-control'
-                data-compounding_date='{$compounding_date}'
+                name='notes[{$day}]'
+                class='form-control notes_input'
+                data-phase='{$phase}'
+                data-day='{$day}'
             >{$notes}</textarea>";
 
             $compounding_tracker[] = [
                 'day' => $day,
-                'date' => date('d-M-Y', strtotime($compounding_date)),
                 'cycle' => $cycle,
                 'day_in_cycle' => $day_in_cycle,
                 'plan_opening' => round($plan_opening),
@@ -29277,14 +29287,17 @@ public function get_single_client_chart_images($client_id, $data = [])
                 'cum_return_percent' => round($cum_return_percent, 2),
                 'actual_closing' => $actual_closing,
                 'actual_closing_html' => $actual_closing_html,
+                'notes' => $notes,
                 'notes_html' => $notes_html,
             ];
 
-            $previous_plan_closing = $plan_closing;
-            $previous_day_in_cycle = $day_in_cycle;
-            $previous_wd_amount = $wd_amount;
+            $previous_plan_closing   = $plan_closing;
+            $previous_day_in_cycle   = $day_in_cycle;
+            $previous_wd_amount      = $wd_amount;
             $previous_actual_closing = $actual_closing;
-            $previous_wd_target = $wd_target;
+            $previous_wd_target      = $wd_target;
+
+            $day++;
         }
 
         return $compounding_tracker;
@@ -29369,15 +29382,18 @@ public function get_single_client_chart_images($client_id, $data = [])
     public function save_compounding_actual_closing()
     {
         $data = $this->input->post();
-        $compounding_date = !empty($data['compounding_date']) ? $data['compounding_date'] : NULL;
+        $phase = !empty($data['phase']) ? $data['phase'] : 1;
+        $day = !empty($data['day']) ? $data['day'] : NULL;
         $actual_closing = !empty($data['actual_closing']) ? $data['actual_closing'] : NULL;
-        $this->db->where('compounding_date', $compounding_date);
+        $this->db->where('phase', $phase);
+        $this->db->where('day', $day);
         $compounding_tracker = $this->db->get(db_prefix().'compounding_tracker')->row();
         if(!empty($compounding_tracker)) {
-            $this->db->where('compounding_date', $compounding_date);
+            $this->db->where('phase', $phase);
+            $this->db->where('day', $day);
             $this->db->update(db_prefix() . 'compounding_tracker', ['actual_closing' => $actual_closing]);
         } else {
-            $this->db->insert(db_prefix() . 'compounding_tracker', ['compounding_date' => $compounding_date, 'actual_closing' => $actual_closing]);
+            $this->db->insert(db_prefix() . 'compounding_tracker', ['phase' => $phase, 'day' => $day, 'actual_closing' => $actual_closing]);
         }
 
         return true;
@@ -29386,15 +29402,18 @@ public function get_single_client_chart_images($client_id, $data = [])
     public function save_compounding_notes()
     {
         $data = $this->input->post();
-        $compounding_date = !empty($data['compounding_date']) ? $data['compounding_date'] : NULL;
+        $phase = !empty($data['phase']) ? $data['phase'] : 1;
+        $day = !empty($data['day']) ? $data['day'] : NULL;
         $notes = !empty($data['notes']) ? $data['notes'] : NULL;
-        $this->db->where('compounding_date', $compounding_date);
+        $this->db->where('phase', $phase);
+        $this->db->where('day', $day);
         $compounding_tracker = $this->db->get(db_prefix().'compounding_tracker')->row();
         if(!empty($compounding_tracker)) {
-            $this->db->where('compounding_date', $compounding_date);
+            $this->db->where('phase', $phase);
+            $this->db->where('day', $day);
             $this->db->update(db_prefix() . 'compounding_tracker', ['notes' => $notes]);
         } else {
-            $this->db->insert(db_prefix() . 'compounding_tracker', ['compounding_date' => $compounding_date, 'notes' => $notes]);
+            $this->db->insert(db_prefix() . 'compounding_tracker', ['phase' => $phase, 'day' => $day, 'notes' => $notes]);
         }
 
         return true;

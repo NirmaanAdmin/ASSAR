@@ -12,7 +12,6 @@ $total_records = count($data);
 if ($search_value != '') {
     $data = array_filter($data, function ($row) use ($search_value) {
         return (
-            stripos($row['date'], $search_value) !== false ||
             stripos((string)$row['day'], $search_value) !== false ||
             stripos((string)$row['cycle'], $search_value) !== false
         );
@@ -24,22 +23,21 @@ if (!empty($order)) {
     $col_dir = $order[0]['dir'];
     $column_map = [
         0 => 'day',
-        1 => 'date',
-        2 => 'cycle',
-        3 => 'day_in_cycle',
-        4 => 'plan_opening',
-        5 => 'plan_closing',
-        6 => 'actual_opening',
-        7 => 'actual_pnl',
-        8 => 'actual_closing',
-        9 => 'vs_plan',
-        10 => 'fixed_margin',
-        11 => 'daily_return_percent',
-        12 => 'cumulative_pnl',
-        13 => 'cum_return_percent',
-        14 => 'wd_target',
-        15 => 'wd_amount',
-        16 => 'notes',
+        1 => 'cycle',
+        2 => 'day_in_cycle',
+        3 => 'plan_opening',
+        4 => 'plan_closing',
+        5 => 'actual_opening',
+        6 => 'actual_pnl',
+        7 => 'actual_closing',
+        8 => 'vs_plan',
+        9 => 'fixed_margin',
+        10 => 'daily_return_percent',
+        11 => 'cumulative_pnl',
+        12 => 'cum_return_percent',
+        13 => 'wd_target',
+        14 => 'wd_amount',
+        15 => 'notes',
     ];
     if (isset($column_map[$col_index])) {
         $field = $column_map[$col_index];
@@ -57,7 +55,6 @@ $aaData = [];
 foreach ($paged_data as $index => $row) {
     $aaData[] = [
         $row['day'],
-        $row['date'],
         $row['cycle'],
         $row['day_in_cycle'],
         app_format_money($row['plan_opening'], $base_currency->symbol),

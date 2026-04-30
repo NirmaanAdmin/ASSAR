@@ -19,7 +19,6 @@
 				<?php
 				$columns = [
 					'Day',
-					'Date',
 					'Cycle',
 					'Day in Cycle',
 					'Plan Opening',
@@ -50,7 +49,6 @@
 			<thead>
 				<tr>
 					<th><?php echo _l('Day'); ?></th>
-					<th><?php echo _l('Date'); ?></th>
 					<th><?php echo _l('Cycle'); ?></th>
 					<th><?php echo _l('Day in Cycle'); ?></th>
 					<th><?php echo _l('Plan Opening'); ?></th>
