@@ -2,8 +2,8 @@
 $CI = &get_instance();
 $CI->load->model('purchase_model');
 $base_currency = get_base_currency_pur();
-$draw   = intval($CI->input->post('draw'));
-$start  = intval($CI->input->post('start'));
+$draw = intval($CI->input->post('draw'));
+$start = intval($CI->input->post('start'));
 $length = intval($CI->input->post('length'));
 $search_value = $CI->input->post('search')['value'] ?? '';
 $order = $CI->input->post('order');
@@ -21,7 +21,7 @@ if ($search_value != '') {
 $filtered_records = count($data);
 if (!empty($order)) {
     $col_index = $order[0]['column'];
-    $col_dir   = $order[0]['dir'];
+    $col_dir = $order[0]['dir'];
     $column_map = [
         0 => 'day',
         1 => 'date',

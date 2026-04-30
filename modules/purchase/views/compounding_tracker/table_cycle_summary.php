@@ -2,11 +2,11 @@
 $CI = &get_instance();
 $CI->load->model('purchase_model');
 $base_currency = get_base_currency_pur();
-$draw   = intval($CI->input->post('draw'));
-$start  = intval($CI->input->post('start'));
+$draw = intval($CI->input->post('draw'));
+$start = intval($CI->input->post('start'));
 $length = intval($CI->input->post('length'));
 $search_value = $CI->input->post('search')['value'] ?? '';
-$order  = $CI->input->post('order');
+$order = $CI->input->post('order');
 $compounding_tracker = $CI->purchase_model->get_compounding_tracker_data();
 $cycle_summary = [];
 if (!empty($compounding_tracker)) {
@@ -16,9 +16,9 @@ if (!empty($compounding_tracker)) {
     }
     foreach ($grouped as $cycle => $rows) {
         $start_day = $rows[0]['day'] ?? 0;
-        $end_day   = end($rows)['day'] ?? 0;
+        $end_day = end($rows)['day'] ?? 0;
         $start_bal = $rows[0]['actual_opening'] ?? 0;
-        $end_bal   = end($rows)['actual_closing'] ?? 0;
+        $end_bal = end($rows)['actual_closing'] ?? 0;
         $cycle_wd_amount = end($rows)['wd_amount'] ?? 0;
         $cycle_summary[] = [
             'cycle' => $cycle,
@@ -42,7 +42,7 @@ if ($search_value != '') {
 $filtered_records = count($cycle_summary);
 if (!empty($order)) {
     $col_index = $order[0]['column'];
-    $col_dir   = $order[0]['dir'];
+    $col_dir = $order[0]['dir'];
     $column_map = [
         0 => 'cycle',
         1 => 'start_day',
@@ -53,7 +53,6 @@ if (!empty($order)) {
     ];
     if (isset($column_map[$col_index])) {
         $field = $column_map[$col_index];
-
         usort($cycle_summary, function ($a, $b) use ($field, $col_dir) {
             if ($col_dir == 'asc') {
                 return $a[$field] <=> $b[$field];
