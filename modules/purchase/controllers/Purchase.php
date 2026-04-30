@@ -18179,13 +18179,22 @@ class purchase extends AdminController
         echo json_encode($data);
     }
 
-    public function get_compounding_tracker()
+    public function get_compounding_cycle_summary_table()
     {
         if (!$this->input->is_ajax_request()) {
             show_404();
         }
-        $data = $this->purchase_model->get_compounding_tracker_data();
-        echo json_encode($data);
+
+        $this->app->get_table_data(module_views_path('purchase', 'compounding_tracker/table_cycle_summary'));
+    }
+
+    public function get_compounding_tracker_table()
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+
+        $this->app->get_table_data(module_views_path('purchase', 'compounding_tracker/table_tracker'));
     }
 
     public function save_compounding_actual_closing()

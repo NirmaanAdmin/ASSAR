@@ -29347,45 +29347,7 @@ public function get_single_client_chart_images($client_id, $data = [])
         $total_profit_dashboard = end($compounding_tracker)['cumulative_pnl'] ?? 0;
         $overall_return_dashboard = end($compounding_tracker)['cum_return_percent'] ?? 0;
 
-        $cycle_summary = [];
-        if(!empty($compounding_tracker)) {
-            $total_cycles = array_values(
-                array_map(
-                    function ($group) {
-                        return ['cycle' => $group[0]['cycle']];
-                    },
-                    array_reduce($compounding_tracker, function ($carry, $item) {
-                        $carry[$item['cycle']][] = $item;
-                        return $carry;
-                    }, [])
-                )
-            );
-            foreach ($total_cycles as $key => $value) {
-                $current_cycle = $value['cycle'];
-                $current_cycle_data = array_values(
-                    array_filter($compounding_tracker, function ($item) use ($current_cycle) {
-                        return $item['cycle'] == $current_cycle;
-                    })
-                );
-                $start_day = $current_cycle_data[0]['day'] ?? 0;
-                $end_day = 0;
-                $start_bal = $current_cycle_data[0]['actual_opening'] ?? 0;
-                $end_bal = end($current_cycle_data)['actual_closing'] ?? 0;
-                $cycle_wd_amount = end($current_cycle_data)['wd_amount'] ?? 0;
-
-                $cycle_summary[] = [
-                    'cycle' => $current_cycle,
-                    'start_day' => $start_day,
-                    'end_day' => $end_day,
-                    'start_bal' => $start_bal,
-                    'end_bal' => $end_bal,
-                    'cycle_wd_amount' => $cycle_wd_amount,
-                ];
-            }
-        }
-
         return [
-            'cycle_summary' => $cycle_summary,
             'current_balance_dashboard' => round($current_balance_dashboard),
             'days_elapsed_dashboard' => $days_elapsed_dashboard,
             'current_cycle_dashboard' => $current_cycle_dashboard,

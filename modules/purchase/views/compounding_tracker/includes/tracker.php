@@ -1,6 +1,6 @@
 <div class="row">
 	<div class="col-md-12">
-		<table class="table dt-table tracker_table border">
+		<table class="table tracker_table">
 			<thead>
 				<tr>
 					<th><?php echo _l('Day'); ?></th>
@@ -22,8 +22,6 @@
 					<th><?php echo _l('Cum. Return %'); ?></th>
 				</tr>
 			</thead>
-			<tbody>
-			</tbody>
 		</table>
 	</div>
 </div>

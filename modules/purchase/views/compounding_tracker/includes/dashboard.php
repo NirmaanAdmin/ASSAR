@@ -310,7 +310,7 @@
 </div>
 <div class="row">
  <div class="col-md-12 mtop20">
-  <table class="table dt-table cycle_summary_table border">
+  <table class="table cycle_summary_table">
    <thead>
     <tr>
      <th><?php echo _l('Cycle'); ?></th>
@@ -321,8 +321,6 @@
      <th><?php echo _l('W/D'); ?></th>
    </tr>
  </thead>
- <tbody>
- </tbody>
 </table>
 </div>
 </div>
