@@ -18155,25 +18155,31 @@ class purchase extends AdminController
 
     public function compounding_tracker()
     {
-        $this->load->model('currencies_model');
         $data['title'] = _l('compounding_tracker');
-        $data['base_currency'] = $this->currencies_model->get_base_currency();
+        $data['tab'] = ['dashboard', 'tracker', 'config'];
+        $group = $this->input->get('group');
+        if (!$group) {
+            $group = 'dashboard';
+        }
+        $data['group'] = $group;
+        if ($group == 'config') {
+            $this->load->model('currencies_model');
+            $data['base_currency'] = $this->currencies_model->get_base_currency();
+        }
+        $data['tabs']['view'] = 'compounding_tracker/includes/' . $group;
         $this->load->view('compounding_tracker/manage', $data);
     }
 
-    public function save_compounding_config()
+    public function get_compounding_dashboard()
     {
         if (!$this->input->is_ajax_request()) {
             show_404();
         }
-        $data = $this->purchase_model->save_compounding_config();
-        echo json_encode([
-            'status' => true,
-            'message' => 'Compounding configuration parameters have been saved successfully.',
-        ]);
+        $data = $this->purchase_model->get_compounding_dashboard();
+        echo json_encode($data);
     }
 
-    public function get_compounding_tracker_data()
+    public function get_compounding_tracker()
     {
         if (!$this->input->is_ajax_request()) {
             show_404();
@@ -18203,6 +18209,18 @@ class purchase extends AdminController
         echo json_encode([
             'status' => true,
             'message' => 'Your changes have been saved successfully.',
+        ]);
+    }
+
+    public function save_compounding_config()
+    {
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        $data = $this->purchase_model->save_compounding_config();
+        echo json_encode([
+            'status' => true,
+            'message' => 'Compounding configuration parameters have been saved successfully.',
         ]);
     }
 }

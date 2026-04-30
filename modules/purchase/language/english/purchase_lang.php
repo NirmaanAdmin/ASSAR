@@ -996,3 +996,6 @@ $lang['work_order_items'] = 'Work Order Items';
 $lang['purchase_request_items'] = 'Purchase Request Items';
 $lang['is_change_order'] = 'Is Change Order?';
 $lang['compounding_tracker'] = 'Compounding Tracker';
+$lang['dashboard'] = 'Dashboard';
+$lang['tracker'] = 'Tracker';
+$lang['config'] = 'Config';
