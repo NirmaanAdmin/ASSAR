@@ -14,12 +14,12 @@
 					<th><?php echo _l('Actual Closing'); ?></th>
 					<th><?php echo _l('vs Plan %'); ?></th>
 					<th><?php echo _l('FIXED_MARGIN_INR'); ?></th>
-					<th><?php echo _l('W/D Target'); ?></th>
-					<th><?php echo _l('W/D Amount'); ?></th>
-					<th><?php echo _l('Notes'); ?></th>
 					<th><?php echo _l('Daily Return %'); ?></th>
 					<th><?php echo _l('Cum. P&L'); ?></th>
 					<th><?php echo _l('Cum. Return %'); ?></th>
+					<th><?php echo _l('W/D Target'); ?></th>
+					<th><?php echo _l('W/D Amount'); ?></th>
+					<th><?php echo _l('Notes'); ?></th>
 				</tr>
 			</thead>
 		</table>

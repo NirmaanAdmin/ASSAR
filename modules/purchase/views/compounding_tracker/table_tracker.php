@@ -34,12 +34,12 @@ if (!empty($order)) {
         8 => 'actual_closing',
         9 => 'vs_plan',
         10 => 'fixed_margin',
-        11 => 'wd_target',
-        12 => 'wd_amount',
-        13 => 'notes',
-        14 => 'daily_return_percent',
-        15 => 'cumulative_pnl',
-        16 => 'cum_return_percent',
+        11 => 'daily_return_percent',
+        12 => 'cumulative_pnl',
+        13 => 'cum_return_percent',
+        14 => 'wd_target',
+        15 => 'wd_amount',
+        16 => 'notes',
     ];
     if (isset($column_map[$col_index])) {
         $field = $column_map[$col_index];
@@ -67,12 +67,12 @@ foreach ($paged_data as $index => $row) {
         $row['actual_closing_html'],
         $row['vs_plan'].'%',
         app_format_money($row['fixed_margin'], $base_currency->symbol),
-        app_format_money($row['wd_target'], $base_currency->symbol),
-        app_format_money($row['wd_amount'], $base_currency->symbol),
-        $row['notes_html'],
         $row['daily_return_percent'].'%',
         app_format_money($row['cumulative_pnl'], $base_currency->symbol),
         $row['cum_return_percent'].'%',
+        app_format_money($row['wd_target'], $base_currency->symbol),
+        app_format_money($row['wd_amount'], $base_currency->symbol),
+        $row['notes_html'],
     ];
 }
 $output = [
