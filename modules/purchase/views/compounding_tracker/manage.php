@@ -1,5 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
+<style>
+   .compounding_btn.active {
+      background-color: #0284C7;
+      color: #fff !important;
+      border-color: #0284C7;
+   }
+</style>
 <div id="wrapper">
    <div class="content">
       <div class="row">
@@ -13,21 +20,15 @@
                      </h4>
                      <hr />
                   </div>
-                  <div class="col-md-12">
-                     <ul class="nav nav-tabs nav-tabs-horizontal mbot15">
-                        <?php foreach($tab as $groups){ ?>
-                           <li class="<?php echo ($group == $groups ? 'active' : ''); ?>">
-                              <a href="<?php echo admin_url('purchase/compounding_tracker?group='.$groups); ?>">
-                                 <?php echo _l($groups); ?>
-                              </a>
-                           </li>
-                        <?php } ?>
-                     </ul>
+                  <div class="col-md-12 mbot15">
+                     <?php foreach($tab as $groups){ ?>
+                       <a href="<?php echo admin_url('purchase/compounding_tracker?group='.$groups); ?>" class="btn btn-outline-info pull-left mright10 compounding_btn <?php echo ($group == $groups ? 'active' : ''); ?>">
+                          <?php echo _l($groups); ?>
+                       </a>
+                     <?php } ?>
                   </div>
                   <div class="col-md-12">
-                     <div class="tab-content">
-                        <?php $this->load->view($tabs['view']); ?>
-                     </div>
+                     <?php $this->load->view($tabs['view']); ?>
                   </div>
                </div>
             </div>
