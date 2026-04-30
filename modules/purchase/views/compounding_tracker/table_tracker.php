@@ -1,29 +1,84 @@
 <?php
 $CI = &get_instance();
-$base_currency = get_base_currency_pur();
 $CI->load->model('purchase_model');
+$base_currency = get_base_currency_pur();
+$draw   = intval($CI->input->post('draw'));
+$start  = intval($CI->input->post('start'));
+$length = intval($CI->input->post('length'));
+$search_value = $CI->input->post('search')['value'] ?? '';
+$order = $CI->input->post('order');
 $data = $CI->purchase_model->get_compounding_tracker_data();
-$output  = [];
-$rResult = [];
-foreach ($data as $row) {
-    $r = [];
-    $r[] = $row['day'];
-    $r[] = $row['date'];
-    $r[] = $row['cycle'];
-    $r[] = $row['day_in_cycle'];
-    $r[] = app_format_money($row['plan_opening'], $base_currency->symbol);
-    $r[] = app_format_money($row['plan_closing'], $base_currency->symbol);
-    $r[] = app_format_money($row['actual_opening'], $base_currency->symbol);
-    $r[] = app_format_money($row['actual_pnl'], $base_currency->symbol);
-    $r[] = $row['actual_closing_html'];
-    $r[] = $row['vs_plan'].'%';
-    $r[] = app_format_money($row['fixed_margin'], $base_currency->symbol);
-    $r[] = app_format_money($row['wd_target'], $base_currency->symbol);
-    $r[] = app_format_money($row['wd_amount'], $base_currency->symbol);
-    $r[] = $row['notes_html'];
-    $r[] = $row['daily_return_percent'].'%';
-    $r[] = app_format_money($row['cumulative_pnl'], $base_currency->symbol);
-    $r[] = $row['cum_return_percent'].'%';
-    $output['aaData'][] = $r;
+$total_records = count($data);
+if ($search_value != '') {
+    $data = array_filter($data, function ($row) use ($search_value) {
+        return (
+            stripos($row['date'], $search_value) !== false ||
+            stripos((string)$row['day'], $search_value) !== false ||
+            stripos((string)$row['cycle'], $search_value) !== false
+        );
+    });
 }
+$filtered_records = count($data);
+if (!empty($order)) {
+    $col_index = $order[0]['column'];
+    $col_dir   = $order[0]['dir'];
+    $column_map = [
+        0 => 'day',
+        1 => 'date',
+        2 => 'cycle',
+        3 => 'day_in_cycle',
+        4 => 'plan_opening',
+        5 => 'plan_closing',
+        6 => 'actual_opening',
+        7 => 'actual_pnl',
+        8 => 'actual_closing',
+        9 => 'vs_plan',
+        10 => 'fixed_margin',
+        11 => 'wd_target',
+        12 => 'wd_amount',
+        13 => 'notes',
+        14 => 'daily_return_percent',
+        15 => 'cumulative_pnl',
+        16 => 'cum_return_percent',
+    ];
+    if (isset($column_map[$col_index])) {
+        $field = $column_map[$col_index];
+        usort($data, function ($a, $b) use ($field, $col_dir) {
+            if ($col_dir == 'asc') {
+                return $a[$field] <=> $b[$field];
+            } else {
+                return $b[$field] <=> $a[$field];
+            }
+        });
+    }
+}
+$paged_data = array_slice($data, $start, $length);
+$aaData = [];
+foreach ($paged_data as $index => $row) {
+    $aaData[] = [
+        $row['day'],
+        $row['date'],
+        $row['cycle'],
+        $row['day_in_cycle'],
+        app_format_money($row['plan_opening'], $base_currency->symbol),
+        app_format_money($row['plan_closing'], $base_currency->symbol),
+        app_format_money($row['actual_opening'], $base_currency->symbol),
+        app_format_money($row['actual_pnl'], $base_currency->symbol),
+        $row['actual_closing_html'],
+        $row['vs_plan'].'%',
+        app_format_money($row['fixed_margin'], $base_currency->symbol),
+        app_format_money($row['wd_target'], $base_currency->symbol),
+        app_format_money($row['wd_amount'], $base_currency->symbol),
+        $row['notes_html'],
+        $row['daily_return_percent'].'%',
+        app_format_money($row['cumulative_pnl'], $base_currency->symbol),
+        $row['cum_return_percent'].'%',
+    ];
+}
+$output = [
+    "draw" => $draw,
+    "iTotalRecords" => $total_records,
+    "iTotalDisplayRecords" => $filtered_records,
+    "aaData" => $aaData
+];
 ?>
