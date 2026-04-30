@@ -1,6 +1,35 @@
 <script>
   var tracker_table;
   tracker_table = $('.tracker_table');
+  // On page load, fetch and apply saved preferences for the logged-in user
+  $.ajax({
+     url: admin_url + 'purchase/getPreferences',
+     type: 'GET',
+     data: {
+        module: 'compounding_tracker'
+     },
+     dataType: 'json',
+     success: function(data) {
+        let tracker_table = $('.tracker_table').DataTable();
+        $('.toggle-column').each(function() {
+           let colIndex = parseInt($(this).val(), 10);
+           let prefValue = data.preferences && data.preferences[colIndex] !== undefined ?
+              data.preferences[colIndex] :
+              "true";
+           let isVisible = (typeof prefValue === "string") ?
+              (prefValue.toLowerCase() === "true") :
+              prefValue;
+           tracker_table.column(colIndex).visible(isVisible, false);
+           $(this).prop('checked', isVisible);
+        });
+        tracker_table.columns.adjust().draw();
+        let allChecked = $('.toggle-column').length === $('.toggle-column:checked').length;
+        $('#select-all-columns').prop('checked', allChecked);
+     },
+     error: function() {
+        console.error('Could not retrieve column preferences.');
+     }
+  });
   initDataTable('.tracker_table', admin_url + 'purchase/get_compounding_tracker_table', [], [], {}, [0, 'asc'], false);
 
   $("body").on('change', '#actual_closing_input', function() {
@@ -31,4 +60,52 @@
      }
    });
   });
+
+  $('#select-all-columns').on('change', function() {
+   var isChecked = $(this).is(':checked');
+   $('.toggle-column').prop('checked', isChecked).trigger('change');
+  });
+
+  $('.toggle-column').on('change', function() {
+   var column = tracker_table.DataTable().column($(this).val());
+   column.visible($(this).is(':checked'));
+   var allChecked = $('.toggle-column').length === $('.toggle-column:checked').length;
+   $('#select-all-columns').prop('checked', allChecked);
+   saveColumnPreferences();
+  });
+
+  tracker_table.DataTable().columns().every(function(index) {
+   var column = this;
+   $('.toggle-column[value="' + index + '"]').prop('checked', column.visible());
+  });
+
+  $('.dropdown-menu').on('click', function(e) {
+   e.stopPropagation();
+  });
+
+  tracker_table.on('draw.dt', function () {
+   $('.selectpicker').selectpicker('refresh');
+  });
+
+  function saveColumnPreferences() {
+   var preferences = {};
+   $('.toggle-column').each(function() {
+    preferences[$(this).val()] = $(this).is(':checked');
+   });
+   $.ajax({
+    url: admin_url + 'purchase/savePreferences',
+    type: 'POST',
+    data: {
+     preferences: preferences,
+     module: 'compounding_tracker'
+
+   },
+   success: function(response) {
+     console.log('Preferences saved successfully.');
+   },
+   error: function() {
+     console.error('Failed to save preferences.');
+   }
+  });
+ }
 </script>

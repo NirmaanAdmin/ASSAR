@@ -1,5 +1,51 @@
+<style>
+	.show_hide_columns {
+		position: absolute;
+		z-index: 5000;
+		left: 200px
+	}
+</style>
 <div class="row">
 	<div class="col-md-12">
+		<div class="btn-group show_hide_columns" id="show_hide_columns">
+			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="padding: 4px 7px;">
+				<i class="fa fa-cog"></i> <?php  ?> <span class="caret"></span>
+			</button>
+			<div class="dropdown-menu" style="padding: 10px; min-width: 250px;">
+				<div>
+					<input type="checkbox" id="select-all-columns"> <strong><?php echo _l('Select all'); ?></strong>
+				</div>
+				<hr>
+				<?php
+				$columns = [
+					'Day',
+					'Date',
+					'Cycle',
+					'Day in Cycle',
+					'Plan Opening',
+					'Plan Closing',
+					'Actual Opening',
+					'Actual P&L',
+					'Actual Closing',
+					'vs Plan %',
+					'FIXED_MARGIN_INR',
+					'Daily Return %',
+					'Cum. P&L',
+					'Cum. Return %',
+					'W/D Target',
+					'W/D Amount',
+					'Notes',
+				];
+				?>
+				<div>
+					<?php foreach ($columns as $key => $label): ?>
+						<input type="checkbox" class="toggle-column" data-id="<?php echo $label; ?>" value="<?php echo $key; ?>" checked>
+						<?php echo _l($label); ?><br>
+					<?php endforeach; ?>
+				</div>
+
+			</div>
+		</div>
 		<table class="table tracker_table">
 			<thead>
 				<tr>
