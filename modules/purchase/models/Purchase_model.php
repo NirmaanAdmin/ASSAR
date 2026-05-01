@@ -29433,4 +29433,10 @@ public function get_single_client_chart_images($client_id, $data = [])
         update_module_filter($module_name, 'target', !empty($data['target']) ? $data['target'] : 10000000);
         return true;
     }
+
+    public function get_compounding_phases()
+    {
+        $this->db->order_by('id', 'ASC');
+        return $this->db->get(db_prefix() . 'compounding_phases')->result_array();
+    }
 }

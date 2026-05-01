@@ -18165,6 +18165,8 @@ class purchase extends AdminController
         if ($group == 'config') {
             $this->load->model('currencies_model');
             $data['base_currency'] = $this->currencies_model->get_base_currency();
+        } else if($group == 'tracker') {
+            $data['phases'] = $this->purchase_model->get_compounding_phases();
         }
         $data['tabs']['view'] = 'compounding_tracker/includes/' . $group;
         $this->load->view('compounding_tracker/manage', $data);

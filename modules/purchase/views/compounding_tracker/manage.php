@@ -1,10 +1,25 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 <style>
+   /* Default button style */
+   .compounding_btn {
+      background-color: #fff !important;
+      color: #0284C7 !important;
+      border: 1px solid #0284C7 !important;
+   }
+
+   /* Hover optional */
+   .compounding_btn:hover {
+      background-color: #E0F2FE !important;
+      color: #0284C7 !important;
+      border-color: #0284C7 !important;
+   }
+
+   /* Active button style */
    .compounding_btn.active {
-      background-color: #0284C7;
+      background-color: #0284C7 !important;
       color: #fff !important;
-      border-color: #0284C7;
+      border-color: #0284C7 !important;
    }
 </style>
 <div id="wrapper">
@@ -20,9 +35,9 @@
                      </h4>
                      <hr />
                   </div>
-                  <div class="col-md-12 mbot15">
+                  <div class="col-md-12 mbot10">
                      <?php foreach($tab as $groups){ ?>
-                       <a href="<?php echo admin_url('purchase/compounding_tracker?group='.$groups); ?>" class="btn btn-outline-info pull-left mright10 compounding_btn <?php echo ($group == $groups ? 'active' : ''); ?>">
+                       <a href="<?php echo admin_url('purchase/compounding_tracker?group='.$groups); ?>" class="btn btn-info pull-left mright10 compounding_btn <?php echo ($group == $groups ? 'active' : ''); ?>">
                           <?php echo _l($groups); ?>
                        </a>
                      <?php } ?>
