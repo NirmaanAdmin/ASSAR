@@ -6,7 +6,7 @@
 	}
 </style>
 <div class="row">
-	<div class="col-md-12 mtop20">
+	<div class="col-md-12 mtop10">
 		<div class="btn-group show_hide_columns" id="show_hide_columns">
 			<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="padding: 4px 7px;">
 				<i class="fa fa-cog"></i> <?php  ?> <span class="caret"></span>

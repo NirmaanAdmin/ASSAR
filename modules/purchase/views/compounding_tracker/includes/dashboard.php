@@ -21,7 +21,7 @@
    }
 </style>
 <div class="row">
- <div class="col-md-12 mtop20">
+ <div class="col-md-12 mtop10">
   <div class="row">
    <div class="quick-stats-invoices col-md-3 tw-mb-2 sm:tw-mb-0 n3_width">
      <div class="top_stats_wrapper">

@@ -1,6 +1,6 @@
 <?php $module_name = 'compounding_tracker'; ?>
 <div class="row">
-   <div class="col-md-12 mtop20">
+   <div class="col-md-12">
       <table class="table table-bordered table-striped config_table">
          <thead>
             <tr>
