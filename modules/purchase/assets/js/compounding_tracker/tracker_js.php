@@ -30,7 +30,13 @@
         console.error('Could not retrieve column preferences.');
      }
   });
-  initDataTable('.tracker_table', admin_url + 'purchase/get_compounding_tracker_table', [], [], {}, [0, 'asc'], false);
+  var urlParams = new URLSearchParams(window.location.search);
+  var current_phase = parseInt(urlParams.get('phase')) || 1;
+  $('#current_phase').val(current_phase);
+  var Params = {
+    phase: '[name="current_phase"]'
+  };
+  initDataTable('.tracker_table', admin_url + 'purchase/get_compounding_tracker_table', [], [], Params, [0, 'asc'], false);
 
   $("body").on('change', '.actual_closing_input', function() {
     var actual_closing = $(this).val();
@@ -112,4 +118,12 @@
    }
   });
  }
+
+ $(document).on('click', '.delete_phase', function(e) {
+   e.preventDefault();
+   var url = $(this).attr('href');
+   if(confirm('Are you sure you want to delete this compounding phase?')){
+      window.location.href = url;
+   }
+ });
 </script>

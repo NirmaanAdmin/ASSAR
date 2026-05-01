@@ -29439,4 +29439,12 @@ public function get_single_client_chart_images($client_id, $data = [])
         $this->db->order_by('id', 'ASC');
         return $this->db->get(db_prefix() . 'compounding_phases')->result_array();
     }
+
+    public function delete_compounding_phase($id)
+    {
+        $this->db->where('phase', $id);
+        $this->db->delete(db_prefix() . 'compounding_tracker');
+        $this->db->where('id', $id);
+        return $this->db->delete(db_prefix() . 'compounding_phases');
+    }
 }

@@ -18234,4 +18234,11 @@ class purchase extends AdminController
             'message' => 'Compounding configuration parameters have been saved successfully.',
         ]);
     }
+
+    public function delete_compounding_phase($id)
+    {
+        $response = $this->purchase_model->delete_compounding_phase($id);
+        set_alert('success', 'The compounding phase has been deleted successfully.');
+        redirect(admin_url('purchase/compounding_tracker?group=tracker'));
+    }
 }
