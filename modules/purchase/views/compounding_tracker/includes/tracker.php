@@ -58,16 +58,19 @@ $current_phase = !empty($current_phase) ? $current_phase : 1;
 ?>
 <div class="row">
 	<div class="col-md-12 mtop10">
-		<?php foreach($phases as $phase){ ?>
+		<?php foreach($phases as $key => $phase){ ?>
 			<div class="phase-wrapper">
 				<a href="<?php echo admin_url('purchase/compounding_tracker?group='.$group.'&phase='.$phase['id']); ?>"
 					class="btn btn-info phase_btn <?php echo ($phase['id'] == $current_phase ? 'active' : ''); ?>">
 					<?php echo $phase['name']; ?>
 				</a>
-				<a href="<?php echo admin_url('purchase/delete_compounding_phase/'.$phase['id']); ?>"
-					class="delete_phase">
-					<i class="fa fa-times"></i>
-				</a>
+				<?php
+				if($key > 0) { ?>
+					<a href="<?php echo admin_url('purchase/delete_compounding_phase/'.$phase['id']); ?>"
+						class="delete_phase">
+						<i class="fa fa-times"></i>
+					</a>
+				<?php } ?>
 			</div>
 		<?php } ?>
 	</div>
