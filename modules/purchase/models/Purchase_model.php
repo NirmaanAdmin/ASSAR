@@ -29447,4 +29447,28 @@ public function get_single_client_chart_images($client_id, $data = [])
         $this->db->where('id', $id);
         return $this->db->delete(db_prefix() . 'compounding_phases');
     }
+
+    public function add_compounding_phase($data)
+    {
+        if (isset($data['phase_id'])) {
+            unset($data['phase_id']);
+        }
+        $this->db->insert(db_prefix() . 'compounding_phases', $data);
+        $insert_id = $this->db->insert_id();
+        return $insert_id;
+    }
+
+    public function update_compounding_phase($data)
+    {
+        if (isset($data['phase_id'])) {
+            $id = $data['phase_id'];
+            unset($data['phase_id']);
+        }
+        $this->db->where('id', $id);
+        $this->db->update(db_prefix() . 'compounding_phases', $data);
+        if ($this->db->affected_rows() > 0) {
+            return true;
+        }
+        return false;
+    }
 }

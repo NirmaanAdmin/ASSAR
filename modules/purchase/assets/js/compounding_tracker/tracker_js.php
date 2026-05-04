@@ -119,6 +119,27 @@
   });
  }
 
+ function new_compounding_phase() {
+  "use strict";
+  $('#compounding_phase_model').modal('show');
+  $('.edit-title').addClass('hide');
+  $('.add-title').removeClass('hide');
+  $('input[name="phase_id"]').val('');
+ }
+
+ function edit_compounding_phase(invoker, id) {
+  "use strict";
+  appValidateForm($('#add_compounding_phase'),{name:'required'});
+  var name = $(invoker).data('name');
+  $('input[name="phase_id"]').val(id);
+  $('input[name="name"]').val(name);
+  $('#compounding_phase_model').modal('show');
+  $('#compounding_phase_model .add-title').addClass('hide');
+  $('#compounding_phase_model .edit-title').removeClass('hide');
+ }
+
+ appValidateForm($('#add_compounding_phase'),{name:'required'});
+
  $(document).on('click', '.delete_phase', function(e) {
    e.preventDefault();
    var url = $(this).attr('href');

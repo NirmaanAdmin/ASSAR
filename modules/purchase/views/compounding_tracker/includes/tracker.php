@@ -22,9 +22,22 @@
 		margin-bottom: 10px;
 	}
 	.phase-wrapper .phase_btn {
-		min-width: 140px;
-		padding-right: 32px;
+		min-width: 165px;
+		padding-right: 65px;
 		text-align: left;
+	}
+	.edit_phase {
+		position: absolute;
+		top: 50%;
+		right: 32px;
+		transform: translateY(-50%);
+		font-size: 13px;
+		color: #0284C7;
+		z-index: 10;
+		text-decoration: none;
+	}
+	.edit_phase:hover {
+		color: #0369A1;
 	}
 	.delete_phase {
 		position: absolute;
@@ -34,17 +47,18 @@
 		font-size: 12px;
 		text-decoration: none;
 		line-height: 1;
-		color: #0284C7; /* inactive icon color */
-		transition: all 0.2s ease-in-out;
+		color: #0284C7;
+		z-index: 10;
 	}
-	.phase-wrapper .phase_btn.active + .delete_phase {
+	.delete_phase:hover {
+		color: #dc2626;
+	}
+	.phase-wrapper .phase_btn.active ~ .edit_phase,
+	.phase-wrapper .phase_btn.active ~ .delete_phase {
 		color: #fff;
 	}
-	.phase-wrapper .delete_phase:hover {
-		color: #0284C7 !important;
-	}
-	.phase-wrapper .phase_btn.active + .delete_phase:hover {
-		color: #ffd6d6 !important;
+	.phase-wrapper .phase_btn.active ~ .delete_phase:hover {
+		color: #ffd6d6;
 	}
 	.show_hide_columns {
 		position: absolute;
@@ -61,18 +75,29 @@ $current_phase = !empty($current_phase) ? $current_phase : 1;
 		<?php foreach($phases as $key => $phase){ ?>
 			<div class="phase-wrapper">
 				<a href="<?php echo admin_url('purchase/compounding_tracker?group='.$group.'&phase='.$phase['id']); ?>"
-					class="btn btn-info phase_btn <?php echo ($phase['id'] == $current_phase ? 'active' : ''); ?>">
+				   class="btn btn-info phase_btn <?php echo ($phase['id'] == $current_phase ? 'active' : ''); ?>">
 					<?php echo $phase['name']; ?>
 				</a>
-				<?php
-				if($key > 0) { ?>
+				<a href="#"
+				   class="edit_phase"
+				   onclick="edit_compounding_phase(this, <?php echo $phase['id']; ?>); return false;"
+				   data-name="<?php echo htmlspecialchars($phase['name'], ENT_QUOTES); ?>"
+				   title="Edit Phase">
+					<i class="fa fa-pencil-square"></i>
+				</a>
+				<?php if($key > 0){ ?>
 					<a href="<?php echo admin_url('purchase/delete_compounding_phase/'.$phase['id']); ?>"
-						class="delete_phase">
+					   class="delete_phase"
+					   title="Delete Phase">
 						<i class="fa fa-times"></i>
 					</a>
 				<?php } ?>
 			</div>
 		<?php } ?>
+		<a href="#" onclick="new_compounding_phase(); return false;"
+		   class="btn btn-info pull-right display-block">
+			<i class="fa fa-plus"></i> Add phase
+		</a>
 	</div>
 </div>
 <div class="row">
@@ -138,5 +163,35 @@ $current_phase = !empty($current_phase) ? $current_phase : 1;
 				</tr>
 			</thead>
 		</table>
+	</div>
+</div>
+
+<div class="modal fade" id="compounding_phase_model" tabindex="-1" role="dialog">
+	<div class="modal-dialog">
+		<?php echo form_open_multipart(admin_url('purchase/compounding_phase'), array('id'=>'add_compounding_phase')); ?>
+		<?php echo form_hidden('phase_id'); ?>
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title">
+					<span class="add-title"><?php echo _l('Add phase'); ?></span>
+					<span class="edit-title"><?php echo _l('Edit phase'); ?></span>
+				</h4>
+			</div>
+			<div class="modal-body">
+				<div class="row">
+					<div class="col-md-12">
+						<div class="form">
+							<?php echo render_input('name', 'Name', ''); ?>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal"><?php echo _l('close'); ?></button>
+				<button type="submit" class="btn btn-info"><?php echo _l('submit'); ?></button>
+			</div>
+		</div>
+		<?php echo form_close(); ?>
 	</div>
 </div>

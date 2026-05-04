@@ -18241,4 +18241,28 @@ class purchase extends AdminController
         set_alert('success', 'The compounding phase has been deleted successfully.');
         redirect(admin_url('purchase/compounding_tracker?group=tracker'));
     }
+
+    public function compounding_phase()
+    {
+        if ($this->input->post()) {
+            $message = '';
+            $data = $this->input->post();
+            if (!$this->input->post('phase_id')) {
+                $mess = $this->purchase_model->add_compounding_phase($data);
+                if ($mess) {
+                    set_alert('success', 'The compounding phase has been added successfully.');
+                } else {
+                    set_alert('warning', 'The compounding phase could not be added.');
+                }
+            } else {
+                $success = $this->purchase_model->update_compounding_phase($data);
+                if ($success) {
+                    set_alert('success', 'The compounding phase has been updated successfully.');
+                } else {
+                    set_alert('warning', 'The compounding phase could not be updated.');
+                }
+            }
+            redirect($_SERVER['HTTP_REFERER']);
+        }
+    }
 }
