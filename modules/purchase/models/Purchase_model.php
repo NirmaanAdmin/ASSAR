@@ -29305,6 +29305,9 @@ public function get_single_client_chart_images($client_id, $data = [])
 
     public function get_compounding_dashboard()
     {
+        $module_name = 'compounding_tracker';
+        $starting_capital_val = get_module_filter($module_name, 'starting_capital')->filter_value ?? 2500;
+        $target_val = get_module_filter($module_name, 'target')->filter_value ?? 10000000;
         $compounding_tracker = $this->get_compounding_tracker_data();
 
         $non_empty_actual_closing_list = array_values(array_filter(
