@@ -30,7 +30,7 @@ $join = [
      AND nrr.month = "' . $prev_month . '"',
     'LEFT JOIN tblassar_monthly_increase mi
      ON mi.client_id = tblassar_clients.id
-     '
+     AND mi.month = "' . $month . '"'
 ];
 $month_filter_name_value = !empty($this->ci->input->post('month')) ? $this->ci->input->post('month') : NULL;
 update_module_filter($module_name, $month_filter_name, $month_filter_name_value);
